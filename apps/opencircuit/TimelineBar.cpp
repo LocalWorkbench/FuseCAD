@@ -3,7 +3,6 @@
 
 #include "Icons.h"
 #include "Theme.h"
-
 #include "oc/model/Document.h"
 
 #include <QContextMenuEvent>
@@ -22,12 +21,18 @@ constexpr int kPad = 10;
 
 QString iconFor(oc::FeatureType t) {
     switch (t) {
-    case oc::FeatureType::Sketch: return "sketch";
-    case oc::FeatureType::Extrude: return "extrude";
-    case oc::FeatureType::Revolve: return "revolve";
-    case oc::FeatureType::Fillet: return "fillet";
-    case oc::FeatureType::Chamfer: return "chamfer";
-    case oc::FeatureType::ImportStep: return "import";
+    case oc::FeatureType::Sketch:
+        return "sketch";
+    case oc::FeatureType::Extrude:
+        return "extrude";
+    case oc::FeatureType::Revolve:
+        return "revolve";
+    case oc::FeatureType::Fillet:
+        return "fillet";
+    case oc::FeatureType::Chamfer:
+        return "chamfer";
+    case oc::FeatureType::ImportStep:
+        return "import";
     }
     return {};
 }
@@ -55,8 +60,7 @@ QSize TimelineStrip::sizeHint() const { return {kPad * 2 + count() * kCell + 8, 
 void TimelineStrip::setItems(std::vector<Item> items, int marker) {
     items_ = std::move(items);
     marker_ = std::clamp(marker, 0, count());
-    if (std::none_of(items_.begin(), items_.end(), [this](const Item& i) { return i.id == selected_; }))
-        selected_ = -1;
+    if (std::none_of(items_.begin(), items_.end(), [this](const Item& i) { return i.id == selected_; })) selected_ = -1;
     updateGeometry();
     update();
 }
@@ -96,8 +100,8 @@ void TimelineStrip::paintEvent(QPaintEvent*) {
         }
         const bool rolledBack = i >= marker_;
         p.setOpacity(rolledBack || it.suppressed ? 0.35 : 1.0);
-        icons::get(it.icon).paint(&p, cell.adjusted((kCell - kIcon) / 2, (kCell - kIcon) / 2, -(kCell - kIcon) / 2,
-                                                     -(kCell - kIcon) / 2));
+        icons::get(it.icon).paint(
+            &p, cell.adjusted((kCell - kIcon) / 2, (kCell - kIcon) / 2, -(kCell - kIcon) / 2, -(kCell - kIcon) / 2));
         p.setOpacity(1.0);
         if (!it.healthy) {
             p.setPen(Qt::NoPen);

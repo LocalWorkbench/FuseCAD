@@ -3,7 +3,6 @@
 
 #include "ViewCube.h"
 #include "ViewState.h"
-
 #include "oc/kernel/Kernel.h"
 
 #include <QMatrix4x4>

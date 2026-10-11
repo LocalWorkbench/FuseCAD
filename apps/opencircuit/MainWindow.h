@@ -3,7 +3,6 @@
 
 #include "BrowserPanel.h"
 #include "ViewState.h"
-
 #include "oc/kernel/Kernel.h"
 #include "oc/model/Document.h"
 
@@ -29,6 +28,9 @@ public:
     ~MainWindow() override;
 
     bool openFile(const QString& path);
+    // Image of the whole window. Unlike QWidget::grab(), this composites the
+    // OpenGL viewport through its framebuffer so 3D content and overlays are exact.
+    QImage snapshot();
 
 protected:
     void closeEvent(QCloseEvent* event) override;
@@ -43,8 +45,8 @@ private:
 
     // Document lifecycle.
     void setDocument(oc::Document doc, bool resetHistory);
-    void recompute();     // run the timeline and refresh every view
-    void refreshViews();  // views only (visibility changes etc.)
+    void recompute();    // run the timeline and refresh every view
+    void refreshViews(); // views only (visibility changes etc.)
     void commit(const QString& label);
     template <class Fn>
     void runCommand(const QString& label, Fn&& fn); // on oc::Error the document is restored

@@ -281,8 +281,8 @@ void Viewport::uploadBodies() {
         std::vector<float> interleaved;
         interleaved.reserve(m.positions.size() * 2);
         for (size_t i = 0; i + 2 < m.positions.size(); i += 3)
-            interleaved.insert(interleaved.end(), {m.positions[i], m.positions[i + 1], m.positions[i + 2],
-                                                   m.normals[i], m.normals[i + 1], m.normals[i + 2]});
+            interleaved.insert(interleaved.end(), {m.positions[i], m.positions[i + 1], m.positions[i + 2], m.normals[i],
+                                                   m.normals[i + 1], m.normals[i + 2]});
         g->faceVao.create();
         g->faceVao.bind();
         g->faceVbo.create();
@@ -522,8 +522,8 @@ void Viewport::mouseMoveEvent(QMouseEvent* event) {
         const QMatrix4x4 inv = viewMatrix().inverted();
         const QVector3D rightDir = inv.mapVector({1, 0, 0}).normalized();
         const QVector3D up = inv.mapVector({0, 1, 0}).normalized();
-        const float unitsPerPixel = 2.0f * distance_ * std::tan(qDegreesToRadians(kFovDeg) * 0.5f) /
-                                    static_cast<float>(std::max(height(), 1));
+        const float unitsPerPixel =
+            2.0f * distance_ * std::tan(qDegreesToRadians(kFovDeg) * 0.5f) / static_cast<float>(std::max(height(), 1));
         target_ += (-rightDir * static_cast<float>(delta.x()) + up * static_cast<float>(delta.y())) * unitsPerPixel;
     } else if (event->buttons() & Qt::LeftButton) {
         yawDeg_ -= static_cast<float>(delta.x()) * 0.4f;

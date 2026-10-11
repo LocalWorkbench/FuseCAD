@@ -10,7 +10,6 @@
 #include "TimelineBar.h"
 #include "ViewCube.h"
 #include "Viewport.h"
-
 #include "oc/core/Error.h"
 #include "oc/model/Builders.h"
 #include "oc/model/Features.h"
@@ -31,6 +30,7 @@
 #include <QMenu>
 #include <QMenuBar>
 #include <QMessageBox>
+#include <QPainter>
 #include <QTabBar>
 #include <QToolButton>
 #include <QVBoxLayout>
@@ -83,7 +83,8 @@ std::vector<std::vector<float>> sketchPolylines(const oc::SketchFeature& f) {
     for (const auto& e : s.entities()) {
         if (e.construction) continue;
         switch (e.type) {
-        case EntityType::Point: break;
+        case EntityType::Point:
+            break;
         case EntityType::Line: {
             std::vector<float> strip;
             push(strip, s.point(e.p1));
@@ -91,7 +92,9 @@ std::vector<std::vector<float>> sketchPolylines(const oc::SketchFeature& f) {
             out.push_back(std::move(strip));
             break;
         }
-        case EntityType::Circle: arc(s.point(e.p1), s.variables()[static_cast<size_t>(e.var)], 0, 2 * oc::kPi); break;
+        case EntityType::Circle:
+            arc(s.point(e.p1), s.variables()[static_cast<size_t>(e.var)], 0, 2 * oc::kPi);
+            break;
         case EntityType::Arc: {
             const oc::Vec2 c = s.point(e.p1), a = s.point(e.p2), b = s.point(e.p3);
             const double a0 = std::atan2(a.y - c.y, a.x - c.x);
@@ -114,10 +117,10 @@ MainWindow::MainWindow(QWidget* parent)
     timeline_ = new TimelineBar(this);
     registerCommands();
 
-    auto* nav = new NavigationBar(*commands_,
-                                  {"nav.orbit", "nav.lookat", "|", "nav.pan", "nav.zoom", "view.fit", "|",
-                                   "view.grid", "nav.viewports"},
-                                  buildDisplayMenu(), nullptr);
+    auto* nav = new NavigationBar(
+        *commands_,
+        {"nav.orbit", "nav.lookat", "|", "nav.pan", "nav.zoom", "view.fit", "|", "view.grid", "nav.viewports"},
+        buildDisplayMenu(), nullptr);
     canvas_ = new Canvas(viewport_, browser_, nav, this);
     connect(commands_, &CommandRegistry::notImplemented, this, [this](const QString& text) {
         notify(tr("<b>%1</b> is coming soon &mdash; OpenCircuit is under active development.").arg(text));
@@ -142,9 +145,8 @@ MainWindow::MainWindow(QWidget* parent)
     connect(browser_, &BrowserPanel::contextMenuRequested, this, &MainWindow::onBrowserContextMenu);
     connect(timeline_, &TimelineBar::markerRequested, this, &MainWindow::setMarker);
     connect(timeline_, &TimelineBar::contextMenuRequested, this, &MainWindow::onTimelineContextMenu);
-    connect(timeline_, &TimelineBar::editRequested, this, [this](int) {
-        notify(tr("<b>Edit Feature</b> is coming soon &mdash; for now, change its parameters."));
-    });
+    connect(timeline_, &TimelineBar::editRequested, this,
+            [this](int) { notify(tr("<b>Edit Feature</b> is coming soon &mdash; for now, change its parameters.")); });
 
     resize(1500, 940);
     setDocument(oc::samples::mountingPlate(), true);
@@ -153,6 +155,22 @@ MainWindow::MainWindow(QWidget* parent)
 }
 
 MainWindow::~MainWindow() = default;
+
+QImage MainWindow::snapshot() {
+    QImage image = grab().toImage();
+    QPainter p(&image);
+    const qreal dpr = image.devicePixelRatio();
+    const QPoint origin = viewport_->mapTo(this, QPoint(0, 0));
+    QImage gl = viewport_->grabFramebuffer();
+    gl.setDevicePixelRatio(dpr);
+    p.drawImage(origin, gl);
+    // Panels floating over the canvas.
+    for (QWidget* child : canvas_->findChildren<QWidget*>(Qt::FindDirectChildrenOnly)) {
+        if (child == viewport_ || !child->isVisible()) continue;
+        p.drawPixmap(child->mapTo(this, QPoint(0, 0)), child->grab());
+    }
+    return image;
+}
 
 // ---------------------------------------------------------------------------
 // Commands
@@ -217,7 +235,8 @@ void MainWindow::registerCommands() {
     grid->setChecked(view_.showGrid);
 
     c.add("nav.orbit", tr("Orbit"), "orbit", [this] { notify(tr("<b>Orbit</b>: drag with the left mouse button")); });
-    c.add("nav.pan", tr("Pan"), "pan", [this] { notify(tr("<b>Pan</b>: drag with the middle or right mouse button")); });
+    c.add("nav.pan", tr("Pan"), "pan",
+          [this] { notify(tr("<b>Pan</b>: drag with the middle or right mouse button")); });
     c.add("nav.zoom", tr("Zoom"), "zoom", [this] { notify(tr("<b>Zoom</b>: scroll the mouse wheel")); });
     c.add("nav.lookat", tr("Look At"), "lookat", todo);
     c.add("nav.viewports", tr("Multiple Views"), "viewports", todo);
@@ -277,8 +296,10 @@ void MainWindow::registerCommands() {
         "modify.delete", tr("Delete"), "delete",
         [this] {
             const int id = timeline_->selectedFeatureId();
-            if (id < 0) notify(tr("Select a feature in the timeline to delete it"));
-            else deleteFeature(id);
+            if (id < 0)
+                notify(tr("Select a feature in the timeline to delete it"));
+            else
+                deleteFeature(id);
         },
         QKeySequence::Delete);
     c.add("modify.appearance", tr("Appearance"), "appearance", todo, QKeySequence(Qt::Key_A));
@@ -345,28 +366,27 @@ void MainWindow::buildRibbon() {
     const G insert{tr("INSERT"), {"insert.step"}, {"insert.mesh", "insert.decal", "insert.canvas"}};
     const G select{tr("SELECT"), {"select.select"}, {}};
 
-    ribbon_->addTab(tr("SOLID"),
-                    {
-                        G{tr("CREATE"),
-                          {"create.sketch", "create.extrude", "create.revolve", "create.hole", "create.pattern",
-                           "create.box"},
-                          {"create.sweep", "create.loft", "create.rib", "create.emboss", "create.thread", "-",
-                           "create.cylinder", "create.sphere", "create.torus", "create.coil", "create.pipe", "-",
-                           "create.pattern-circular", "create.mirror"}},
-                        G{tr("MODIFY"),
-                          {"modify.presspull", "modify.fillet", "modify.chamfer", "modify.shell", "modify.combine",
-                           "modify.move"},
-                          {"modify.align", "modify.scale", "modify.split", "modify.delete", "-", "modify.appearance",
-                           "modify.material", "-", "modify.parameters", "modify.compute"}},
-                        G{tr("ASSEMBLE"), {"assemble.component", "assemble.joint"}, {"assemble.motion"}},
-                        construct,
-                        inspect,
-                        insert,
-                        select,
-                    });
-    ribbon_->addTab(tr("SURFACE"), {G{tr("CREATE"), {"surface.patch", "create.loft"}, {"create.sweep"}},
-                                    G{tr("MODIFY"), {"surface.trim", "surface.stitch"}, {}}, construct, inspect,
-                                    insert, select});
+    ribbon_->addTab(
+        tr("SOLID"),
+        {
+            G{tr("CREATE"),
+              {"create.sketch", "create.extrude", "create.revolve", "create.hole", "create.pattern", "create.box"},
+              {"create.sweep", "create.loft", "create.rib", "create.emboss", "create.thread", "-", "create.cylinder",
+               "create.sphere", "create.torus", "create.coil", "create.pipe", "-", "create.pattern-circular",
+               "create.mirror"}},
+            G{tr("MODIFY"),
+              {"modify.presspull", "modify.fillet", "modify.chamfer", "modify.shell", "modify.combine", "modify.move"},
+              {"modify.align", "modify.scale", "modify.split", "modify.delete", "-", "modify.appearance",
+               "modify.material", "-", "modify.parameters", "modify.compute"}},
+            G{tr("ASSEMBLE"), {"assemble.component", "assemble.joint"}, {"assemble.motion"}},
+            construct,
+            inspect,
+            insert,
+            select,
+        });
+    ribbon_->addTab(tr("SURFACE"),
+                    {G{tr("CREATE"), {"surface.patch", "create.loft"}, {"create.sweep"}},
+                     G{tr("MODIFY"), {"surface.trim", "surface.stitch"}, {}}, construct, inspect, insert, select});
     ribbon_->addTab(tr("MESH"), {G{tr("PREPARE"), {"mesh.repair", "insert.mesh"}, {}}, inspect, select});
     ribbon_->addTab(tr("SHEET METAL"),
                     {G{tr("CREATE"), {"create.sketch", "sheet.flange"}, {}}, construct, inspect, select});
@@ -647,8 +667,10 @@ void MainWindow::exportBodies(const QString& filter, const QString& suffix) {
     for (const auto& [id, body] : doc_.bodies())
         if (view_.bodyVisible(id)) shapes.push_back(body.shape);
     try {
-        if (suffix == "stl") kernel_->exportStl(shapes, path.toStdString(), kDisplayDeflection);
-        else kernel_->exportStep(shapes, path.toStdString());
+        if (suffix == "stl")
+            kernel_->exportStl(shapes, path.toStdString(), kDisplayDeflection);
+        else
+            kernel_->exportStep(shapes, path.toStdString());
         notify(tr("Exported <b>%1</b>").arg(QFileInfo(path).fileName()));
     } catch (const oc::Error& e) {
         QMessageBox::critical(this, tr("Export Failed"), errorText(e));
@@ -656,8 +678,10 @@ void MainWindow::exportBodies(const QString& filter, const QString& suffix) {
 }
 
 void MainWindow::closeEvent(QCloseEvent* event) {
-    if (maybeSave()) event->accept();
-    else event->ignore();
+    if (maybeSave())
+        event->accept();
+    else
+        event->ignore();
 }
 
 // ---------------------------------------------------------------------------
@@ -694,12 +718,12 @@ void MainWindow::showMeasure() {
                        .arg(tr("Body"), tr("Volume (mm³)"), tr("Area (mm²)"), tr("Size (mm)"));
     for (const auto& [id, body] : doc_.bodies()) {
         const oc::BoundingBox bb = kernel_->boundingBox(body.shape);
-        html += QStringLiteral("<tr><td>%1</td><td align='right'>%2</td><td align='right'>%3</td>"
-                               "<td>%4 × %5 × %6</td></tr>")
-                    .arg(QString::fromStdString(body.name), loc.toString(kernel_->volume(body.shape), 'f', 2),
-                         loc.toString(kernel_->surfaceArea(body.shape), 'f', 2),
-                         loc.toString(bb.max.x - bb.min.x, 'f', 2), loc.toString(bb.max.y - bb.min.y, 'f', 2),
-                         loc.toString(bb.max.z - bb.min.z, 'f', 2));
+        html +=
+            QStringLiteral("<tr><td>%1</td><td align='right'>%2</td><td align='right'>%3</td>"
+                           "<td>%4 × %5 × %6</td></tr>")
+                .arg(QString::fromStdString(body.name), loc.toString(kernel_->volume(body.shape), 'f', 2),
+                     loc.toString(kernel_->surfaceArea(body.shape), 'f', 2), loc.toString(bb.max.x - bb.min.x, 'f', 2),
+                     loc.toString(bb.max.y - bb.min.y, 'f', 2), loc.toString(bb.max.z - bb.min.z, 'f', 2));
     }
     html += QStringLiteral("</table>");
     QMessageBox box(QMessageBox::NoIcon, tr("Measure"), html, QMessageBox::Close, this);
@@ -729,8 +753,8 @@ void MainWindow::renameFeature(int id) {
     oc::Feature* f = doc_.findFeature(id);
     if (!f) return;
     bool ok = false;
-    const QString name = QInputDialog::getText(this, tr("Rename"), tr("Name:"), QLineEdit::Normal,
-                                               QString::fromStdString(f->name), &ok);
+    const QString name =
+        QInputDialog::getText(this, tr("Rename"), tr("Name:"), QLineEdit::Normal, QString::fromStdString(f->name), &ok);
     if (!ok || name.trimmed().isEmpty()) return;
     f->name = name.trimmed().toStdString();
     commit(tr("Rename %1").arg(name));
@@ -755,19 +779,32 @@ void MainWindow::setMarker(int position) {
 void MainWindow::onBrowserVisibility(BrowserPanel::Kind kind, int id, bool visible) {
     using K = BrowserPanel::Kind;
     switch (kind) {
-    case K::Document: view_.showBodies = view_.showSketches = visible; break;
-    case K::Origin: view_.showOrigin = visible; break;
-    case K::Bodies: view_.showBodies = visible; break;
+    case K::Document:
+        view_.showBodies = view_.showSketches = visible;
+        break;
+    case K::Origin:
+        view_.showOrigin = visible;
+        break;
+    case K::Bodies:
+        view_.showBodies = visible;
+        break;
     case K::Body:
-        if (visible) view_.hiddenBodies.remove(id);
-        else view_.hiddenBodies.insert(id);
+        if (visible)
+            view_.hiddenBodies.remove(id);
+        else
+            view_.hiddenBodies.insert(id);
         break;
-    case K::Sketches: view_.showSketches = visible; break;
+    case K::Sketches:
+        view_.showSketches = visible;
+        break;
     case K::Sketch:
-        if (visible) view_.visibleSketches.insert(id);
-        else view_.visibleSketches.remove(id);
+        if (visible)
+            view_.visibleSketches.insert(id);
+        else
+            view_.visibleSketches.remove(id);
         break;
-    default: return;
+    default:
+        return;
     }
     refreshViews();
 }

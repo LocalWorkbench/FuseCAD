@@ -34,13 +34,19 @@ oc_add_library(model
     PRIVATE_DEPS nlohmann_json::nlohmann_json)
 
 if(OC_WITH_OCCT)
+    # OCCT 7.8 merged the data-exchange toolkits into TKDE* libraries.
+    if(OpenCASCADE_VERSION VERSION_LESS 7.8)
+        set(_oc_occt_exchange TKXSBase TKSTEPBase TKSTEPAttr TKSTEP209 TKSTEP TKSTL)
+    else()
+        set(_oc_occt_exchange TKXSBase TKDE TKDESTEP TKDESTL)
+    endif()
     oc_add_library(occt
         SOURCES oc/occt/OcctKernel.cpp
         PUBLIC_DEPS oc::kernel
         PRIVATE_DEPS
             TKernel TKMath TKG2d TKG3d TKGeomBase TKGeomAlgo TKBRep TKTopAlgo
             TKPrim TKBO TKBool TKFillet TKMesh TKShHealing
-            TKXSBase TKDE TKDESTEP TKDESTL)
+            ${_oc_occt_exchange})
     # OCCT headers trip our strict warnings; treat them as system headers.
     target_include_directories(oc_occt SYSTEM PRIVATE ${OpenCASCADE_INCLUDE_DIR})
 endif()

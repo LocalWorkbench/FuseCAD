@@ -1,0 +1,67 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  format:
+    name: clang-format
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check formatting
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq clang-format-18
+          git ls-files '*.cpp' '*.h' | xargs clang-format-18 --dry-run --Werror
+
+  core:
+    name: Core (Linux, no OCCT/Qt)
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install dependencies
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq ninja-build nlohmann-json3-dev doctest-dev
+      - name: Configure
+        run: cmake --preset core-only
+      - name: Build
+        run: cmake --build --preset core-only
+      - name: Test
+        run: ctest --preset core-only
+
+  linux:
+    name: Linux (OCCT, sanitizers)
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ninja-build nlohmann-json3-dev doctest-dev \
+            libocct-foundation-dev libocct-modeling-algorithms-dev libocct-modeling-data-dev \
+            libocct-data-exchange-dev
+      - name: Configure
+        run: cmake --preset asan -DOC_BUILD_APP=OFF
+      - name: Build
+        run: cmake --build --preset asan
+      - name: Test
+        run: ctest --preset asan
+
+  macos:
+    name: macOS (OCCT + Qt app)
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install dependencies
+        run: brew install ninja opencascade qt nlohmann-json doctest
+      - name: Configure
+        run: cmake --preset dev
+      - name: Build
+        run: cmake --build --preset dev
+      - name: Test
+        run: ctest --preset dev

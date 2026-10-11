@@ -88,8 +88,10 @@ QWidget* Ribbon::buildGroup(const Group& group) {
     for (const QString& id : group.visible) menu->addAction(commands_.get(id));
     if (!group.overflow.isEmpty()) menu->addSeparator();
     for (const QString& id : group.overflow) {
-        if (id == "-") menu->addSeparator();
-        else menu->addAction(commands_.get(id));
+        if (id == "-")
+            menu->addSeparator();
+        else
+            menu->addAction(commands_.get(id));
     }
 
     auto* label = new QToolButton(box);

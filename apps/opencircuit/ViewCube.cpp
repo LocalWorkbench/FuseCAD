@@ -56,14 +56,21 @@ QRectF homeRect(const QRect& area) { return {double(area.left()), double(area.to
 
 ViewCube::Orientation ViewCube::orientation(Target t) {
     switch (t) {
-    case Top: return {-90.0f, 89.0f};
-    case Bottom: return {-90.0f, -89.0f};
-    case Front: return {-90.0f, 0.0f};
-    case Back: return {90.0f, 0.0f};
-    case Right: return {0.0f, 0.0f};
-    case Left: return {180.0f, 0.0f};
+    case Top:
+        return {-90.0f, 89.0f};
+    case Bottom:
+        return {-90.0f, -89.0f};
+    case Front:
+        return {-90.0f, 0.0f};
+    case Back:
+        return {90.0f, 0.0f};
+    case Right:
+        return {0.0f, 0.0f};
+    case Left:
+        return {180.0f, 0.0f};
     case Home:
-    case None: break;
+    case None:
+        break;
     }
     return {-60.0f, 30.0f};
 }

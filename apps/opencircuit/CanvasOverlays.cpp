@@ -118,9 +118,12 @@ MarkingMenu::MarkingMenu(CommandRegistry& commands, const QStringList& ring, con
         const double dx = std::sin(angle), dy = -std::cos(angle);
         QPoint anchor = center_ + QPoint(int(dx * 150), int(dy * 105));
         QPoint topLeft;
-        if (std::abs(dx) < 0.1) topLeft = anchor - QPoint(b->width() / 2, b->height() / 2);
-        else if (dx > 0) topLeft = anchor - QPoint(0, b->height() / 2);
-        else topLeft = anchor - QPoint(b->width(), b->height() / 2);
+        if (std::abs(dx) < 0.1)
+            topLeft = anchor - QPoint(b->width() / 2, b->height() / 2);
+        else if (dx > 0)
+            topLeft = anchor - QPoint(0, b->height() / 2);
+        else
+            topLeft = anchor - QPoint(b->width(), b->height() / 2);
         b->move(topLeft);
     }
 

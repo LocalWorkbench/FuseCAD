@@ -2,7 +2,6 @@
 #include "BrowserPanel.h"
 
 #include "Icons.h"
-
 #include "oc/model/Document.h"
 #include "oc/model/Features.h"
 
@@ -28,9 +27,7 @@ public:
     using QStyledItemDelegate::QStyledItemDelegate;
     std::function<void(const QModelIndex&)> onEyeClicked;
 
-    static QRect eyeRect(const QRect& row) {
-        return {row.left() + 2, row.center().y() - kIcon / 2, kIcon, kIcon};
-    }
+    static QRect eyeRect(const QRect& row) { return {row.left() + 2, row.center().y() - kIcon / 2, kIcon, kIcon}; }
 
     void paint(QPainter* p, const QStyleOptionViewItem& option, const QModelIndex& index) const override {
         QStyleOptionViewItem opt = option;
@@ -53,9 +50,9 @@ public:
         p->setFont(f);
         const bool dim = visible.isValid() && !visible.toBool();
         p->setPen(option.palette.color(dim ? QPalette::Disabled : QPalette::Active, QPalette::Text));
-        p->drawText(QRect(x, r.top(), r.right() - x, r.height()), Qt::AlignVCenter | Qt::AlignLeft,
-                    option.fontMetrics.elidedText(index.data(Qt::DisplayRole).toString(), Qt::ElideRight,
-                                                  r.right() - x));
+        p->drawText(
+            QRect(x, r.top(), r.right() - x, r.height()), Qt::AlignVCenter | Qt::AlignLeft,
+            option.fontMetrics.elidedText(index.data(Qt::DisplayRole).toString(), Qt::ElideRight, r.right() - x));
     }
 
     QSize sizeHint(const QStyleOptionViewItem& option, const QModelIndex& index) const override {
@@ -183,8 +180,8 @@ void BrowserPanel::refresh(const QString& documentName, const oc::Document& doc,
     for (size_t i = 0; i < doc.features().size() && i < doc.marker(); ++i) {
         const oc::Feature& f = *doc.features()[i];
         if (f.type() != oc::FeatureType::Sketch) continue;
-        addItem(sketches, Kind::Sketch, f.id, QString::fromStdString(f.name),
-                f.healthy() ? "sketch" : "warning", view.sketchVisible(f.id) ? 1 : 0);
+        addItem(sketches, Kind::Sketch, f.id, QString::fromStdString(f.name), f.healthy() ? "sketch" : "warning",
+                view.sketchVisible(f.id) ? 1 : 0);
     }
     addItem(root, Kind::Construction, 0, tr("Construction"), "folder");
 

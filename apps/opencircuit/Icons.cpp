@@ -18,12 +18,12 @@ namespace {
 // All glyphs are drawn on a 64 x 64 canvas.
 using Painter = std::function<void(QPainter&)>;
 
-const QColor kSolid(0x6f, 0xa6, 0xde);   // body blue
-const QColor kOrange(0xf2, 0x93, 0x2c);  // "affected geometry" highlight
-const QColor kGreen(0x34, 0xa8, 0x53);   // create / add
-const QColor kAmber(0xf0, 0xb4, 0x3c);   // construction geometry
+const QColor kSolid(0x6f, 0xa6, 0xde);  // body blue
+const QColor kOrange(0xf2, 0x93, 0x2c); // "affected geometry" highlight
+const QColor kGreen(0x34, 0xa8, 0x53);  // create / add
+const QColor kAmber(0xf0, 0xb4, 0x3c);  // construction geometry
 const QColor kRed(0xd9, 0x3f, 0x3f);
-const QColor kInk(0x3d, 0x44, 0x4f);     // line work
+const QColor kInk(0x3d, 0x44, 0x4f); // line work
 const QColor kPaper(0xff, 0xff, 0xff);
 const QColor kGray(0x9a, 0xa3, 0xae);
 
@@ -170,8 +170,7 @@ const QHash<QString, Painter>& painters() {
          }},
         {"loft",
          [](QPainter& p) {
-             poly(p, {QPointF(14, 18), QPointF(50, 18), QPointF(42, 50), QPointF(22, 50)}, kSolid,
-                  kSolid.darker(190));
+             poly(p, {QPointF(14, 18), QPointF(50, 18), QPointF(42, 50), QPointF(22, 50)}, kSolid, kSolid.darker(190));
              p.setPen(QPen(kOrange, 2.6));
              p.setBrush(kSolid.lighter(140));
              p.drawEllipse(QRectF(14, 12, 36, 12));
@@ -260,8 +259,8 @@ const QHash<QString, Painter>& painters() {
         {"shell",
          [](QPainter& p) {
              isoBox(p, 32, 10, 46, 26);
-             poly(p, {QPointF(32, 16), QPointF(47, 23), QPointF(32, 30), QPointF(17, 23)},
-                  QColor(0x3a, 0x4a, 0x5e), kSolid.darker(190));
+             poly(p, {QPointF(32, 16), QPointF(47, 23), QPointF(32, 30), QPointF(17, 23)}, QColor(0x3a, 0x4a, 0x5e),
+                  kSolid.darker(190));
          }},
         {"combine",
          [](QPainter& p) {
@@ -454,7 +453,8 @@ const QHash<QString, Painter>& painters() {
          [](QPainter& p) {
              p.setPen(QPen(kInk, 2));
              p.setBrush(kPaper);
-             p.drawPolygon(QPolygonF({QPointF(14, 6), QPointF(40, 6), QPointF(50, 16), QPointF(50, 58), QPointF(14, 58)}));
+             p.drawPolygon(
+                 QPolygonF({QPointF(14, 6), QPointF(40, 6), QPointF(50, 16), QPointF(50, 58), QPointF(14, 58)}));
              QFont f("Helvetica", 10, QFont::Bold);
              p.setFont(f);
              p.setPen(kSolid.darker(150));
@@ -465,7 +465,8 @@ const QHash<QString, Painter>& painters() {
          [](QPainter& p) {
              p.setPen(QPen(kInk, 2));
              p.setBrush(kPaper);
-             p.drawPolygon(QPolygonF({QPointF(14, 6), QPointF(40, 6), QPointF(50, 16), QPointF(50, 58), QPointF(14, 58)}));
+             p.drawPolygon(
+                 QPolygonF({QPointF(14, 6), QPointF(40, 6), QPointF(50, 16), QPointF(50, 58), QPointF(14, 58)}));
              arrow(p, QPointF(32, 50), QPointF(32, 24), kOrange, 3.4);
          }},
         {"select",
@@ -473,8 +474,9 @@ const QHash<QString, Painter>& painters() {
              p.setPen(QPen(kInk, 2, Qt::DashLine));
              p.setBrush(QColor(0x1f, 0x8f, 0xe0, 40));
              p.drawRect(QRectF(6, 6, 40, 34));
-             poly(p, {QPointF(30, 24), QPointF(54, 44), QPointF(43, 45), QPointF(49, 58), QPointF(44, 60),
-                      QPointF(38, 47), QPointF(30, 54)},
+             poly(p,
+                  {QPointF(30, 24), QPointF(54, 44), QPointF(43, 45), QPointF(49, 58), QPointF(44, 60), QPointF(38, 47),
+                   QPointF(30, 54)},
                   kPaper, kInk);
          }},
 
@@ -501,8 +503,7 @@ const QHash<QString, Painter>& painters() {
          [](QPainter& p) {
              poly(p, {QPointF(6, 20), QPointF(30, 14), QPointF(30, 50), QPointF(6, 56)}, kSolid.lighter(120),
                   kSolid.darker(170));
-             poly(p, {QPointF(34, 14), QPointF(58, 20), QPointF(58, 56), QPointF(34, 50)}, kSolid,
-                  kSolid.darker(170));
+             poly(p, {QPointF(34, 14), QPointF(58, 20), QPointF(58, 56), QPointF(34, 50)}, kSolid, kSolid.darker(170));
              stroke(p, kOrange, 2.6);
              for (int y = 18; y < 50; y += 8) p.drawLine(QPointF(27, y), QPointF(37, y + 4));
          }},
@@ -517,10 +518,8 @@ const QHash<QString, Painter>& painters() {
          }},
         {"flange-sm",
          [](QPainter& p) {
-             poly(p, {QPointF(8, 40), QPointF(36, 52), QPointF(56, 42), QPointF(28, 30)}, kGray.lighter(115),
-                  kInk);
-             poly(p, {QPointF(28, 30), QPointF(56, 42), QPointF(56, 12), QPointF(28, 2)}, kOrange,
-                  kOrange.darker(160));
+             poly(p, {QPointF(8, 40), QPointF(36, 52), QPointF(56, 42), QPointF(28, 30)}, kGray.lighter(115), kInk);
+             poly(p, {QPointF(28, 30), QPointF(56, 42), QPointF(56, 12), QPointF(28, 2)}, kOrange, kOrange.darker(160));
          }},
         {"print3d",
          [](QPainter& p) {
@@ -570,7 +569,8 @@ const QHash<QString, Painter>& painters() {
          [](QPainter& p) {
              QPainterPath hand;
              hand.addRoundedRect(QRectF(16, 28, 32, 28), 10, 10);
-             for (int i = 0; i < 4; ++i) hand.addRoundedRect(QRectF(17 + i * 8, 10 + (i == 0 || i == 3 ? 6 : 0), 7, 26), 3.5, 3.5);
+             for (int i = 0; i < 4; ++i)
+                 hand.addRoundedRect(QRectF(17 + i * 8, 10 + (i == 0 || i == 3 ? 6 : 0), 7, 26), 3.5, 3.5);
              p.setPen(QPen(kInk, 2.6));
              p.setBrush(kPaper);
              p.drawPath(hand.simplified());
@@ -628,7 +628,8 @@ const QHash<QString, Painter>& painters() {
         {"eye-off", [](QPainter& p) { eye(p, false); }},
         {"folder",
          [](QPainter& p) {
-             poly(p, {QPointF(6, 16), QPointF(24, 16), QPointF(30, 22), QPointF(58, 22), QPointF(58, 52), QPointF(6, 52)},
+             poly(p,
+                  {QPointF(6, 16), QPointF(24, 16), QPointF(30, 22), QPointF(58, 22), QPointF(58, 52), QPointF(6, 52)},
                   QColor(0xc4, 0xcb, 0xd4), QColor(0x7d, 0x86, 0x92));
              poly(p, {QPointF(6, 28), QPointF(58, 28), QPointF(58, 52), QPointF(6, 52)}, QColor(0xdb, 0xe0, 0xe6),
                   QColor(0x7d, 0x86, 0x92));
@@ -697,7 +698,8 @@ const QHash<QString, Painter>& painters() {
          [](QPainter& p) {
              p.setPen(QPen(kInk, 2.6));
              p.setBrush(kPaper);
-             p.drawPolygon(QPolygonF({QPointF(14, 6), QPointF(38, 6), QPointF(50, 18), QPointF(50, 58), QPointF(14, 58)}));
+             p.drawPolygon(
+                 QPolygonF({QPointF(14, 6), QPointF(38, 6), QPointF(50, 18), QPointF(50, 58), QPointF(14, 58)}));
              p.drawPolyline(QPolygonF({QPointF(38, 6), QPointF(38, 18), QPointF(50, 18)}));
          }},
         {"save",
