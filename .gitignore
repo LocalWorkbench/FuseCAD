@@ -1,0 +1,25 @@
+# Build trees (CMake presets put everything under build/)
+/build/
+/out/
+CMakeUserPresets.json
+# Artifacts of an accidental in-source configure
+/CMakeCache.txt
+/CMakeFiles/
+
+# IDE / tooling
+.vscode/
+!.vscode/extensions.json
+.idea/
+.cache/
+compile_commands.json
+*.user
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Exports produced while testing
+*.step
+*.stp
+*.stl
+!tests/data/**

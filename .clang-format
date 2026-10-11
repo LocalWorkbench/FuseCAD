@@ -1,0 +1,27 @@
+---
+Language: Cpp
+BasedOnStyle: LLVM
+Standard: c++20
+ColumnLimit: 120
+IndentWidth: 4
+AccessModifierOffset: -4
+AllowShortFunctionsOnASingleLine: All
+AllowShortIfStatementsOnASingleLine: WithoutElse
+AllowShortLoopsOnASingleLine: true
+AllowShortLambdasOnASingleLine: All
+AlwaysBreakTemplateDeclarations: Yes
+BreakConstructorInitializers: BeforeColon
+FixNamespaceComments: true
+IncludeBlocks: Regroup
+IncludeCategories:
+  # Own module headers ("oc/...", local "X.h") before third-party and system.
+  - Regex: '^"'
+    Priority: 1
+  - Regex: '^<(doctest|nlohmann|Q|BRep|Geom|GC|gp_|Topo|STEP|Stl|Standard|Shape|Poly|Bnd|IFSelect|Interface|TopExp|TopTools|TopLoc|GProp|GCPnts)'
+    Priority: 2
+  - Regex: '^<'
+    Priority: 3
+InsertNewlineAtEOF: true
+PointerAlignment: Left
+SortIncludes: CaseSensitive
+SpaceAfterTemplateKeyword: true

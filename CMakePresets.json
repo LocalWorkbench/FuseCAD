@@ -1,0 +1,62 @@
+{
+  "version": 6,
+  "cmakeMinimumRequired": { "major": 3, "minor": 24, "patch": 0 },
+  "configurePresets": [
+    {
+      "name": "base",
+      "hidden": true,
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/${presetName}",
+      "cacheVariables": {
+        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
+      }
+    },
+    {
+      "name": "dev",
+      "displayName": "Debug, everything on",
+      "inherits": "base",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "OC_WARNINGS_AS_ERRORS": "ON"
+      }
+    },
+    {
+      "name": "release",
+      "displayName": "Optimised build",
+      "inherits": "base",
+      "cacheVariables": { "CMAKE_BUILD_TYPE": "RelWithDebInfo" }
+    },
+    {
+      "name": "asan",
+      "displayName": "Debug + AddressSanitizer + UBSan",
+      "inherits": "dev",
+      "cacheVariables": { "OC_SANITIZERS": "address;undefined" }
+    },
+    {
+      "name": "core-only",
+      "displayName": "Core libraries only (no OCCT, no Qt)",
+      "inherits": "dev",
+      "cacheVariables": { "OC_WITH_OCCT": "OFF", "OC_BUILD_APP": "OFF" }
+    },
+    {
+      "name": "ci",
+      "displayName": "CI: headless, warnings as errors",
+      "inherits": "dev",
+      "cacheVariables": { "OC_BUILD_APP": "OFF" }
+    }
+  ],
+  "buildPresets": [
+    { "name": "dev", "configurePreset": "dev" },
+    { "name": "release", "configurePreset": "release" },
+    { "name": "asan", "configurePreset": "asan" },
+    { "name": "core-only", "configurePreset": "core-only" },
+    { "name": "ci", "configurePreset": "ci" }
+  ],
+  "testPresets": [
+    { "name": "base", "hidden": true, "output": { "outputOnFailure": true } },
+    { "name": "dev", "inherits": "base", "configurePreset": "dev" },
+    { "name": "asan", "inherits": "base", "configurePreset": "asan" },
+    { "name": "core-only", "inherits": "base", "configurePreset": "core-only" },
+    { "name": "ci", "inherits": "base", "configurePreset": "ci" }
+  ]
+}
