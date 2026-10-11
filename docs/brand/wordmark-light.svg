@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 740 216" width="740" height="216">
+  <title>FuseCAD</title>
+  <g transform="translate(0 0) scale(0.84) translate(-20 6)">
+  <defs>
+    <linearGradient id="fc-top" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#8d9bff"/><stop offset="1" stop-color="#5f6ff2"/></linearGradient>
+    <linearGradient id="fc-right" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3b4ad4"/><stop offset="1" stop-color="#242f9e"/></linearGradient>
+  </defs>
+  <path d="M128 32 L211 80 L211 176 L128 224 L128 128 L45 80 Z" fill="none"/>
+  <path d="M128 32 L211 80 L128 128 L45 80 Z" fill="url(#fc-top)" stroke="url(#fc-top)" stroke-width="2" stroke-linejoin="round"/>
+  <path d="M128 128 L211 80 L211 176 L128 224 Z" fill="url(#fc-right)" stroke="url(#fc-right)" stroke-width="2" stroke-linejoin="round"/>
+  <path d="M45 80 L128 128 L128 224 L45 176 Z" fill="#22b8cf" fill-opacity=".12" stroke="#22b8cf" stroke-width="8" stroke-linejoin="round"/>
+  <path d="M45 80 L128 224" stroke="#22b8cf" stroke-width="4" stroke-linecap="round" stroke-dasharray="2 10" />
+  <g fill="#ffffff" stroke="#22b8cf" stroke-width="6"><circle cx="45" cy="80" r="10"/><circle cx="45" cy="176" r="10"/><circle cx="128" cy="224" r="10"/></g>
+  </g>
+  <text x="200" y="140" font-family="Inter, 'SF Pro Display', 'Helvetica Neue', Arial, sans-serif" font-size="112" letter-spacing="-3"><tspan font-weight="700" fill="#1c2140">Fuse</tspan><tspan font-weight="400" fill="#5f6ff2">CAD</tspan></text>
+</svg>

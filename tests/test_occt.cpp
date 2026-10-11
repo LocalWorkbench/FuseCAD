@@ -3,24 +3,24 @@
 // Integration tests against the real OpenCASCADE kernel: volumes are checked
 // against closed-form values, so these catch genuine geometry regressions.
 
-#include "oc/core/Error.h"
-#include "oc/model/Builders.h"
-#include "oc/model/Document.h"
-#include "oc/model/Features.h"
-#include "oc/model/Samples.h"
-#include "oc/occt/OcctKernel.h"
+#include "fuse/core/Error.h"
+#include "fuse/model/Builders.h"
+#include "fuse/model/Document.h"
+#include "fuse/model/Features.h"
+#include "fuse/model/Samples.h"
+#include "fuse/occt/OcctKernel.h"
 
 #include <doctest/doctest.h>
 
 #include <cstdlib>
 #include <filesystem>
 
-using namespace oc;
+using namespace fuse;
 
 namespace {
 
 std::filesystem::path tmpPath(const char* name) {
-    const char* dir = std::getenv("OC_TEST_TMPDIR"); // NOLINT(concurrency-mt-unsafe): single-threaded tests
+    const char* dir = std::getenv("FUSE_TEST_TMPDIR"); // NOLINT(concurrency-mt-unsafe): single-threaded tests
     return std::filesystem::path(dir ? dir : std::filesystem::temp_directory_path().string()) / name;
 }
 
@@ -117,6 +117,7 @@ TEST_CASE("join and intersect") {
     b.profiles.sketchId = sk2.id;
     b.distance = "10";
     b.op.operation = FeatureOperation::Join;
+    b.op.targetBody = a.id;
 
     REQUIRE(doc.recompute(*kernel).ok());
     const ShapePtr& joined = onlyBody(doc).shape;
@@ -139,7 +140,8 @@ TEST_CASE("chamfer edges near points") {
     auto& c = doc.add<ChamferFeature>();
     c.edges.mode = EdgeQuery::Mode::NearPoints;
     c.edges.points = {{5, 0, 10}}; // top front edge
-    c.distance = "2 mm";
+    c.body = e.id;
+    c.size = "2 mm";
     REQUIRE(doc.recompute(*kernel).ok());
     CHECK(kernel->volume(onlyBody(doc).shape) == doctest::Approx(1000 - 2.0 * 2.0 / 2 * 10).epsilon(1e-6));
 }
@@ -154,7 +156,7 @@ TEST_CASE("STEP and STL export, STEP import round trip") {
     auto step = tmpPath("plate_roundtrip.step");
     auto stl = tmpPath("plate_roundtrip.stl");
     kernel->exportStep({s}, step.string());
-    kernel->exportStl({s}, stl.string(), 0.05);
+    kernel->exportStl({s}, stl.string(), kDefaultStlDeflection);
     CHECK(std::filesystem::file_size(step) > 0);
     CHECK(std::filesystem::file_size(stl) > 0);
 
@@ -180,7 +182,37 @@ TEST_CASE("tessellation produces a consistent mesh") {
     CHECK_FALSE(m.edges.empty());
 }
 
-TEST_CASE("kernel errors surface as oc::Error") {
+TEST_CASE("booleans that leave no solid are errors") {
+    auto kernel = occt::createKernel();
+    auto block = [&](Vec2 lo, Vec2 hi) {
+        sketch::Profile p;
+        const Vec2 corners[] = {lo, {hi.x, lo.y}, hi, {lo.x, hi.y}};
+        for (int i = 0; i < 4; ++i) p.outer.edges.push_back({.start = corners[i], .end = corners[(i + 1) % 4]});
+        return kernel->extrude(Plane::XY(), {p}, 0, 10);
+    };
+    const ShapePtr inner = block({0, 0}, {10, 10});
+    const ShapePtr outer = block({-5, -5}, {15, 15});
+    const ShapePtr apart = block({50, 50}, {60, 60});
+
+    CHECK_THROWS_WITH_AS(kernel->boolean(BooleanOp::Cut, inner, outer), "the cut removes the whole body", Error);
+    CHECK_THROWS_WITH_AS(kernel->boolean(BooleanOp::Intersect, inner, apart),
+                         "the bodies do not overlap, so their intersection is empty", Error);
+    CHECK(kernel->volume(kernel->boolean(BooleanOp::Cut, outer, inner)) == doctest::Approx(1000.0 * 3).epsilon(1e-6));
+}
+
+TEST_CASE("meshing does not modify the shape") {
+    auto kernel = occt::createKernel();
+    Document doc = samples::mountingPlate();
+    REQUIRE(doc.recompute(*kernel).ok());
+    const ShapePtr& s = onlyBody(doc).shape;
+    Mesh coarse = kernel->tessellate(s, 1.0);
+    Mesh fine = kernel->tessellate(s, 0.01);
+    CHECK(fine.indices.size() > coarse.indices.size());
+    // A coarser request after a finer one must not reuse the finer mesh.
+    CHECK(kernel->tessellate(s, 1.0).indices.size() == coarse.indices.size());
+}
+
+TEST_CASE("kernel errors surface as fuse::Error") {
     auto kernel = occt::createKernel();
     CHECK_THROWS_AS(kernel->importStep("/nonexistent/file.step"), Error);
     CHECK_THROWS_AS(kernel->extrude(Plane::XY(), {}, 0, 10), Error);

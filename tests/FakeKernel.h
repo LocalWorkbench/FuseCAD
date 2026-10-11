@@ -5,14 +5,16 @@
 // records the operation that produced it plus a nominal "volume", so tests can
 // check that the timeline drives the kernel correctly without OCCT.
 
-#include "oc/core/Error.h"
-#include "oc/kernel/Kernel.h"
+#include "fuse/core/Error.h"
+#include "fuse/kernel/Kernel.h"
 
+#include <algorithm>
 #include <cmath>
 #include <string>
+#include <utility>
 #include <vector>
 
-namespace oc::testing {
+namespace fuse::testing {
 
 class FakeShape final : public Shape {
 public:
@@ -58,7 +60,6 @@ public:
     BoundingBox boundingBox(const ShapePtr&) override { return {}; }
     bool isValid(const ShapePtr&) override { return true; }
     int countFaces(const ShapePtr&) override { return 0; }
-    int countEdges(const ShapePtr&) override { return 0; }
 
 private:
     ShapePtr make(const char* op, double v) {
@@ -68,4 +69,4 @@ private:
     static double vol(const ShapePtr& s) { return dynamic_cast<const FakeShape&>(*s).volume; }
 };
 
-} // namespace oc::testing
+} // namespace fuse::testing

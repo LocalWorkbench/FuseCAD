@@ -1,15 +1,15 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 #include "FakeKernel.h"
-#include "oc/core/Error.h"
-#include "oc/model/Builders.h"
-#include "oc/model/Document.h"
-#include "oc/model/Features.h"
-#include "oc/model/Samples.h"
+#include "fuse/core/Error.h"
+#include "fuse/model/Builders.h"
+#include "fuse/model/Document.h"
+#include "fuse/model/Features.h"
+#include "fuse/model/Samples.h"
 
 #include <doctest/doctest.h>
 
-using namespace oc;
-using oc::testing::FakeKernel;
+using namespace fuse;
+using fuse::testing::FakeKernel;
 
 namespace {
 
@@ -108,13 +108,14 @@ TEST_CASE("documents round-trip through JSON") {
     CHECK(k1.log == k2.log);
 }
 
-TEST_CASE("malformed documents are rejected with oc::Error") {
+TEST_CASE("malformed documents are rejected with fuse::Error") {
     CHECK_THROWS_AS(Document::fromJson("not json"), Error);
     CHECK_THROWS_AS(Document::fromJson(R"({"format":"other"})"), Error);
-    CHECK_THROWS_AS(Document::fromJson(R"({"format":"opencircuit","version":999})"), Error);
-    CHECK_THROWS_AS(Document::fromJson(
-                        R"({"format":"opencircuit","version":1,"parameters":[],"features":[{"id":1,"type":"warp"}]})"),
-                    Error);
+    CHECK_THROWS_AS(Document::fromJson(R"({"format":"fusecad","version":999})"), Error);
+    CHECK_THROWS_AS(Document::fromJson(R"({"version":1})"), Error);
+    CHECK_THROWS_AS(
+        Document::fromJson(R"({"format":"fusecad","version":1,"parameters":[],"features":[{"id":1,"type":"warp"}]})"),
+        Error);
 }
 
 TEST_CASE("copies are deep") {
@@ -189,4 +190,197 @@ TEST_CASE("the flange sample is fully constrained except its axis length") {
     REQUIRE(holes);
     CHECK(holes->solveResult.degreesOfFreedom == 0);
     CHECK(holes->profiles.size() == 4);
+}
+
+TEST_CASE("parameters referenced by features cannot be removed") {
+    Document doc = samples::mountingPlate();
+    doc.parameters().add("unused", "1 mm");
+    CHECK_THROWS_WITH_AS(doc.removeParameter("corner_r"), doctest::Contains("Fillet1"), Error);
+    CHECK_THROWS_WITH_AS(doc.removeParameter("hole_d"), doctest::Contains("Sketch2"), Error); // a dimension
+    CHECK_THROWS_WITH_AS(doc.removeParameter("thickness"), doctest::Contains("Extrude1"), Error);
+    CHECK(doc.parameters().contains("corner_r"));
+    doc.parameters().add("half", "unused / 2");
+    CHECK_THROWS_AS(doc.removeParameter("unused"), Error); // referenced by a parameter
+    doc.removeParameter("half");
+    doc.removeParameter("unused");
+    CHECK_FALSE(doc.parameters().contains("unused"));
+    CHECK_THROWS_AS(doc.removeParameter("nope"), Error);
+}
+
+TEST_CASE("renaming a parameter rewrites every reference") {
+    Document doc = samples::mountingPlate();
+    doc.parameters().add("half_w", "width / 2");
+    doc.renameParameter("width", "plate_w");
+    doc.renameParameter("thickness", "t");
+    CHECK_FALSE(doc.parameters().contains("width"));
+    CHECK(doc.parameters().get("half_w").expression.source() == "plate_w / 2");
+    const auto* hole = featureCast<SketchFeature>(doc.features()[3].get());
+    REQUIRE(hole);
+    CHECK(hole->offset == "t");
+    bool found = false;
+    for (const auto& c : hole->sketch.constraints()) found = found || c.expression == "plate_w / 2";
+    CHECK(found);
+    const auto* cut = featureCast<ExtrudeFeature>(doc.features()[4].get());
+    REQUIRE(cut);
+    CHECK(cut->distance == "-t");
+
+    CHECK_THROWS_AS(doc.renameParameter("t", "height"), Error); // taken
+    CHECK_THROWS_AS(doc.renameParameter("t", "mm"), Error);     // reserved
+    CHECK(cut->distance == "-t");
+
+    FakeKernel k;
+    REQUIRE(doc.recompute(k).ok());
+    CHECK(k.volume(doc.bodies().begin()->second.shape) ==
+          doctest::Approx(fakePlateVolume(80, 50, 10, 20)).epsilon(1e-3));
+}
+
+TEST_CASE("feature expressions are checked against their kinds") {
+    Document doc = samples::flange();
+    auto* revolve = featureCast<RevolveFeature>(doc.features()[1].get());
+    REQUIRE(revolve);
+    revolve->angle = "180"; // a bare number for an angle means degrees
+    FakeKernel k;
+    REQUIRE(doc.recompute(k).ok());
+    revolve->angle = "10 mm";
+    CHECK_FALSE(doc.recompute(k).ok());
+    CHECK_FALSE(revolve->healthy());
+
+    Document plate = samples::mountingPlate();
+    plate.parameters().add("tilt", "5 deg", UnitKind::Angle);
+    auto* extrude = featureCast<ExtrudeFeature>(plate.features()[1].get());
+    REQUIRE(extrude);
+    extrude->distance = "tilt";
+    CHECK_FALSE(plate.recompute(k).ok());
+    CHECK_FALSE(extrude->healthy());
+}
+
+TEST_CASE("suppressed features are skipped and their dependents fail") {
+    Document doc = samples::mountingPlate();
+    doc.features()[2]->suppressed = true; // the fillet
+    FakeKernel k;
+    REQUIRE(doc.recompute(k).ok());
+    CHECK(k.log == std::vector<std::string>{"extrude", "extrude", "cut"});
+
+    doc.features()[2]->suppressed = false;
+    doc.features()[3]->suppressed = true; // the hole sketch
+    FakeKernel k2;
+    RecomputeReport r = doc.recompute(k2);
+    CHECK(r.failed == 1);
+    CHECK(doc.features()[3]->healthy()); // suppressed, not failed
+    CHECK_FALSE(doc.features()[4]->healthy());
+    CHECK(k2.volume(doc.bodies().begin()->second.shape) == doctest::Approx(80 * 50 * 10));
+}
+
+TEST_CASE("builders resolve the latest body when created") {
+    Document doc;
+    CHECK_THROWS_AS(build::addFillet(doc, {}, "1 mm"), Error); // nothing to fillet yet
+    build::CylinderSpec cut;
+    cut.op.operation = FeatureOperation::Cut;
+    CHECK_THROWS_AS(build::addCylinder(doc, cut), Error);
+    CHECK(doc.features().empty());
+
+    auto& first = build::addBox(doc, {});
+    auto& second = build::addBox(doc, {});
+    CHECK(doc.latestBody() == second.id);
+    auto& fillet = build::addFillet(doc, {}, "1 mm");
+    CHECK(fillet.body == second.id);
+    auto& chamfer = build::addChamfer(doc, {}, "1 mm", first.id);
+    CHECK(chamfer.body == first.id);
+    CHECK(doc.latestBody() == first.id);
+    auto& hole = build::addCylinder(doc, cut);
+    CHECK(hole.op.targetBody == first.id);
+    CHECK_THROWS_AS(build::addFillet(doc, {}, "45 deg"), Error);
+
+    // The body's creator is now a dependency and cannot be deleted.
+    CHECK_THROWS_WITH_AS(doc.removeFeature(second.id), doctest::Contains("Fillet1"), Error);
+
+    FakeKernel k;
+    REQUIRE(doc.recompute(k).ok());
+    CHECK(doc.bodies().size() == 2);
+}
+
+TEST_CASE("features without a body fail instead of guessing") {
+    Document doc = samples::mountingPlate();
+    auto& chamfer = doc.add<ChamferFeature>();
+    auto& join = doc.add<ExtrudeFeature>();
+    join.profiles.sketchId = doc.features()[0]->id;
+    join.op.operation = FeatureOperation::Join;
+    FakeKernel k;
+    RecomputeReport r = doc.recompute(k);
+    CHECK(r.failed == 2);
+    CHECK_FALSE(chamfer.healthy());
+    CHECK_FALSE(join.healthy());
+    // Such documents are not loadable either.
+    CHECK_THROWS_AS(Document::fromJson(doc.toJson()), Error);
+}
+
+TEST_CASE("the undo stack keeps at most its limit") {
+    Document doc = samples::mountingPlate();
+    UndoStack undo(doc, 3);
+    for (int w = 81; w <= 85; ++w) {
+        doc.parameters().setExpression("width", std::to_string(w) + " mm");
+        undo.commit(doc, "width " + std::to_string(w));
+    }
+    doc = undo.undo();
+    CHECK(doc.parameters().value("width") == doctest::Approx(84));
+    doc = undo.undo();
+    CHECK(doc.parameters().value("width") == doctest::Approx(83));
+    CHECK_FALSE(undo.canUndo()); // older states were trimmed
+    CHECK(undo.redoLabel() == "width 84");
+}
+
+TEST_CASE("the full flange round-trips through JSON") {
+    Document doc = samples::flange();
+    const int revolveId = doc.features()[1]->id;
+    auto* cut = featureCast<ExtrudeFeature>(doc.features()[3].get());
+    REQUIRE(cut);
+    cut->profiles.profileIndices = {0, 2};
+
+    auto& slab = doc.add<ExtrudeFeature>();
+    slab.profiles.sketchId = doc.features()[2]->id;
+    slab.distance = "4 mm";
+    slab.symmetric = true;
+    slab.suppressed = true;
+
+    EdgeQuery near;
+    near.mode = EdgeQuery::Mode::NearPoints;
+    near.points = {{50, 0, 12}, {0, 25, 35}};
+    build::addChamfer(doc, near, "1 mm", revolveId);
+    EdgeQuery vertical;
+    vertical.mode = EdgeQuery::Mode::ParallelTo;
+    vertical.direction = {0, 0, 1};
+    build::addFillet(doc, vertical, "bolt_d / 10", revolveId);
+    doc.parameters().add("count", "4", UnitKind::Unitless, "Bolt count");
+    doc.parameters().add("tilt", "15", UnitKind::Angle);
+
+    const std::string json = doc.toJson();
+    Document copy = Document::fromJson(json);
+    CHECK(copy.toJson() == json);
+    CHECK(copy.parameters().value("tilt") == doctest::Approx(kPi / 12));
+
+    FakeKernel k1, k2;
+    REQUIRE(doc.recompute(k1).ok());
+    REQUIRE(copy.recompute(k2).ok());
+    CHECK(k1.log == std::vector<std::string>{"revolve", "extrude", "cut", "chamfer", "fillet"});
+    CHECK(k1.log == k2.log);
+    CHECK(k2.volume(copy.bodies().at(revolveId).shape) == doctest::Approx(k1.volume(doc.bodies().at(revolveId).shape)));
+}
+
+TEST_CASE("documents are read strictly") {
+    const std::string good = samples::mountingPlate().toJson();
+    CHECK_NOTHROW(Document::fromJson(good));
+    auto mutate = [&](const std::string& from, const std::string& to) {
+        std::string s = good;
+        auto pos = s.find(from);
+        REQUIRE(pos != std::string::npos);
+        return s.replace(pos, from.size(), to);
+    };
+    CHECK_THROWS_AS(Document::fromJson(mutate("\"version\": 1", "\"version\": 0")), Error);
+    CHECK_THROWS_AS(Document::fromJson(mutate("\"fillet\": 1", "\"warp\": 1")), Error); // name_counters key
+    CHECK_THROWS_AS(Document::fromJson(mutate("\"symmetric\": false,", "")), Error);
+    CHECK_THROWS_AS(Document::fromJson(mutate("\"offset\": \"0\",", "")), Error);
+    CHECK_THROWS_AS(Document::fromJson(mutate("\"unit\": \"length\"", "\"unit\": \"furlong\"")), Error);
+    CHECK_THROWS_AS(Document::fromJson(mutate("\"marker\": 5", "\"marker\": 6")), Error);
+    CHECK_THROWS_AS(Document::fromJson(mutate("\"next_id\": 6", "\"next_id\": 5")), Error);
+    CHECK_THROWS_AS(Document::fromJson(mutate("\"type\": \"horizontal\"", "\"type\": \"radius\"")), Error);
 }

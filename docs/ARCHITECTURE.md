@@ -1,6 +1,6 @@
 # Architecture
 
-OpenCircuit is a history-based parametric modeller. A design is a list of user
+FuseCAD is a history-based parametric modeller. A design is a list of user
 parameters plus an ordered **timeline of features**; solid geometry is derived
 state, regenerated from that definition on every change.
 
@@ -8,19 +8,19 @@ state, regenerated from that definition on every change.
 
 | Library | Responsibility | Depends on |
 |---|---|---|
-| `oc::core` | Vectors and planes, units, the expression language, the parameter table | standard library only |
-| `oc::sketch` | 2D sketch entities, constraints, the constraint solver, profile detection | `core` |
-| `oc::kernel` | Abstract `Kernel` interface plus kernel-neutral data (`Mesh`, `EdgeQuery`) | `sketch` (header-only) |
-| `oc::model` | Features, recompute, `Document`, undo, `.ocd` serialisation, modelling commands | `kernel`; nlohmann-json (private) |
-| `oc::occt` | `Kernel` implemented with OpenCASCADE | `kernel`; OCCT (private) |
-| `apps/oc-cli` | Headless command-line front end | `model`, `occt` |
-| `apps/opencircuit` | Qt 6 desktop application | `model`, `occt`, Qt |
+| `fuse::core` | Vectors and planes, units, the expression language, the parameter table | standard library only |
+| `fuse::sketch` | 2D sketch entities, constraints, the constraint solver, profile detection | `core` |
+| `fuse::kernel` | Abstract `Kernel` interface plus kernel-neutral data (`Mesh`, `EdgeQuery`) | `sketch` (header-only) |
+| `fuse::model` | Features, recompute, `Document`, undo, `.fcad` serialisation, modelling commands | `kernel`; nlohmann-json (private) |
+| `fuse::occt` | `Kernel` implemented with OpenCASCADE | `kernel`; OCCT (private) |
+| `apps/fusecad-cli` | Headless command-line front end | `model`, `occt` |
+| `apps/fusecad` | Qt 6 desktop application | `model`, `occt`, Qt |
 
 Rules that keep this healthy:
 
 - Dependencies only point downwards. Third-party libraries are `PRIVATE`
   dependencies, so their headers never leak into our public headers.
-- Only `oc::occt` includes OpenCASCADE headers. The model and the UI see opaque
+- Only `fuse::occt` includes OpenCASCADE headers. The model and the UI see opaque
   `ShapePtr` handles, so the kernel can be replaced or supplemented later.
 - The model layer is tested against `FakeKernel` (no geometry), and the OCCT
   backend against closed-form volumes. A geometry regression shows up as a
@@ -30,7 +30,7 @@ Rules that keep this healthy:
 
 ### 1. OpenCASCADE behind an interface, not a home-grown kernel (for now)
 A production B-rep kernel (robust booleans, fillets, offsets, STEP) is a
-decade-scale effort. OCCT is mature and LGPL. Wrapping it behind `oc::Kernel`
+decade-scale effort. OCCT is mature and LGPL. Wrapping it behind `fuse::Kernel`
 keeps the option to replace individual operations later without touching the
 model or the UI.
 
@@ -69,17 +69,26 @@ command has one implementation, one label, one icon and one shortcut.
 Roadmap commands are registered without a handler and announce themselves as
 "coming soon".
 
-### 7. Icons are code
-The icon set is drawn procedurally with `QPainter` (`Icons.cpp`): no binary
-assets to license or keep in sync, crisp at every DPI, and restyled together
-with the theme.
+### 7. Command icons are code
+The command icon set is drawn procedurally with `QPainter` (`Icons.cpp`): no
+binary assets to license or keep in sync, crisp at every DPI, and restyled
+together with the theme. The application icon is the exception: it is rendered
+from `docs/brand/icon.svg` into `apps/fusecad/resources/` by
+`scripts/make-icons.sh`, and the generated files are committed.
+
+### 8. Kernel results are checked at the boundary
+Every `OcctKernel` call converts OpenCASCADE exceptions into `fuse::Error`, and
+every modelling operation (extrude, revolve, booleans, fillet, chamfer, STEP
+import) rejects results that hold no solid or fail the B-rep checker, with a
+message a CAD user can act on. Queries never modify their input: meshing works
+on a copy, so a shape can be shared and cached safely.
 
 ## Recompute
 
 ```
 Document::recompute(kernel)
   for each feature before the marker, not suppressed:
-      feature.execute(ctx)      // may throw oc::Error
+      feature.execute(ctx)      // may throw fuse::Error
   ctx.bodies -> document bodies
 ```
 
@@ -90,7 +99,8 @@ them, so they are stable across recomputes.
 
 ## File format
 
-`.ocd` files are pretty-printed JSON with a `format` tag and an integer
+`.fcad` files are pretty-printed JSON with a `format` tag and an integer
 `version`. Readers reject files from newer versions rather than misreading
-them. Sketch entities and constraints are stored by index; the raw solver state
+them. Until 1.0 the version is simply bumped when the format changes; older
+files are not migrated. Sketch entities and constraints are stored by index; the raw solver state
 is stored too, so a sketch re-solves from exactly where it was saved.

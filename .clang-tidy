@@ -33,5 +33,6 @@ Checks: >
   readability-redundant-*,
   readability-simplify-boolean-expr
 WarningsAsErrors: ''
-HeaderFilterRegex: '(src|apps|tests)/.*'
+# Only this repository's headers (paths are absolute), never third-party ones.
+HeaderFilterRegex: '/(src/fuse/.*|apps/fusecad(-cli)?/[^/]*|tests/[^/]*)\.h$'
 FormatStyle: file

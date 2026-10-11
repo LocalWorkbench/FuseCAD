@@ -14,10 +14,12 @@ BreakConstructorInitializers: BeforeColon
 FixNamespaceComments: true
 IncludeBlocks: Regroup
 IncludeCategories:
-  # Own module headers ("oc/...", local "X.h") before third-party and system.
+  # Own headers ("fuse/...", local "X.h"), then third-party, then the standard library.
   - Regex: '^"'
     Priority: 1
-  - Regex: '^<(doctest|nlohmann|Q|BRep|Geom|GC|gp_|Topo|STEP|Stl|Standard|Shape|Poly|Bnd|IFSelect|Interface|TopExp|TopTools|TopLoc|GProp|GCPnts)'
+  - Regex: '^<.*\.hxx>$' # OpenCASCADE
+    Priority: 2
+  - Regex: '^<(doctest/|nlohmann/|Q)' # doctest, nlohmann-json, Qt
     Priority: 2
   - Regex: '^<'
     Priority: 3

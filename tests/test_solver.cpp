@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-#include "oc/core/Error.h"
-#include "oc/core/Parameters.h"
-#include "oc/sketch/Sketch.h"
+#include "fuse/core/Error.h"
+#include "fuse/core/Parameters.h"
+#include "fuse/sketch/Sketch.h"
 
 #include <doctest/doctest.h>
 
 #include <cmath>
 
-using namespace oc;
-using namespace oc::sketch;
+using namespace fuse;
+using namespace fuse::sketch;
 
 namespace {
 
@@ -189,11 +189,154 @@ TEST_CASE("fixed points hold their position") {
 
 TEST_CASE("invalid references are reported") {
     Sketch s;
-    CHECK_THROWS_AS(s.addLine(5, 6), oc::Error);
+    CHECK_THROWS_AS(s.addLine(5, 6), fuse::Error);
     EntityId p = s.addPoint({1, 1});
-    CHECK_THROWS_AS(s.addLine(p, p), oc::Error);
-    CHECK_THROWS_AS(s.radius(p), oc::Error);
-    CHECK_THROWS_AS(s.setPoint(Sketch::kOrigin, {1, 1}), oc::Error);
-    s.addConstraint({ConstraintType::Parallel, p, Sketch::kOrigin});
-    CHECK_THROWS_AS(s.solve(), oc::Error);
+    CHECK_THROWS_AS(s.addLine(p, p), fuse::Error);
+    CHECK_THROWS_AS(s.radius(p), fuse::Error);
+    CHECK_THROWS_AS(s.setPoint(Sketch::kOrigin, {1, 1}), fuse::Error);
+}
+
+TEST_CASE("constraints reject entities of the wrong kind") {
+    Sketch s;
+    EntityId p = s.addPoint({1, 1});
+    EntityId l = s.addLine({0, 0}, {10, 0});
+    EntityId c = s.addCircle({5, 5}, 2);
+    using C = Constraint;
+    auto rejects = [&](C con) { CHECK_THROWS_AS(s.addConstraint(std::move(con)), fuse::Error); };
+    rejects(C{ConstraintType::Parallel, p, Sketch::kOrigin});
+    rejects(C{ConstraintType::Parallel, l, -1});                   // missing entity
+    rejects(C{ConstraintType::Horizontal, -1});                    // missing entity
+    rejects(C{ConstraintType::Horizontal, p});                     // a point needs a second point
+    rejects(C{ConstraintType::Horizontal, l, p});                  // a line takes no second entity
+    rejects(C{ConstraintType::Coincident, p, l});                  // point and line
+    rejects(C{ConstraintType::Coincident, p, Sketch::kOrigin, l}); // unexpected third entity
+    rejects(C{ConstraintType::Tangent, l, l});
+    rejects(C{ConstraintType::Equal, l, c});
+    rejects(C{ConstraintType::Radius, l});
+    rejects(C{ConstraintType::Distance, p, c});
+    rejects(C{ConstraintType::Symmetric, p, Sketch::kOrigin, c});
+    rejects(C{ConstraintType::Fix, 99}); // out of range
+    C withExpression{ConstraintType::Parallel, l, s.addLine({0, 1}, {9, 2})};
+    withExpression.expression = "1 mm";
+    rejects(withExpression); // only dimensions are driven by expressions
+    CHECK_THROWS_AS(s.addDimension(ConstraintType::Coincident, p, Sketch::kOrigin, "1 mm"), fuse::Error);
+    CHECK_THROWS_AS(s.addDimension(ConstraintType::Angle, l, l, "10 mm"), fuse::Error); // wrong kind
+    CHECK_THROWS_AS(s.addDimension(ConstraintType::Diameter, c, -1, "-4 mm"), fuse::Error);
+    CHECK(s.constraints().empty());
+
+    // Both entity orders are accepted where the constraint is symmetric in kind.
+    s.addConstraint({ConstraintType::Tangent, l, c});
+    s.addConstraint({ConstraintType::Tangent, c, l});
+    s.addConstraint({ConstraintType::Distance, p, l});
+    CHECK(s.constraints().size() == 3);
+}
+
+TEST_CASE("fromRaw validates entity and constraint references") {
+    Sketch s;
+    EntityId l = s.addLine({0, 0}, {10, 0});
+    s.addConstraint({ConstraintType::Horizontal, l});
+    auto vars = s.variables();
+    auto entities = s.entities();
+    auto constraints = s.constraints();
+    CHECK_NOTHROW(Sketch::fromRaw(vars, entities, constraints));
+
+    auto badEndpoint = entities;
+    badEndpoint.push_back({EntityType::Line, -1, l, Sketch::kOrigin}); // endpoint is a line
+    CHECK_THROWS_AS(Sketch::fromRaw(vars, badEndpoint, constraints), fuse::Error);
+
+    auto badArc = entities;
+    badArc.push_back({EntityType::Arc, -1, Sketch::kOrigin, 1, -1}); // missing end point
+    CHECK_THROWS_AS(Sketch::fromRaw(vars, badArc, constraints), fuse::Error);
+
+    auto badVar = entities;
+    badVar.push_back({EntityType::Point, static_cast<int>(vars.size()) - 1}); // y past the end
+    CHECK_THROWS_AS(Sketch::fromRaw(vars, badVar, constraints), fuse::Error);
+
+    auto badConstraint = constraints;
+    badConstraint.push_back({ConstraintType::Radius, l});
+    CHECK_THROWS_AS(Sketch::fromRaw(vars, entities, badConstraint), fuse::Error);
+    badConstraint.back() = {ConstraintType::Coincident, 1, -1};
+    CHECK_THROWS_AS(Sketch::fromRaw(vars, entities, badConstraint), fuse::Error);
+    badConstraint.back() = {ConstraintType::Coincident, 1, 42};
+    CHECK_THROWS_AS(Sketch::fromRaw(vars, entities, badConstraint), fuse::Error);
+}
+
+TEST_CASE("a failed solve leaves the sketch unchanged") {
+    ParameterTable params;
+    params.add("len", "10 mm");
+    Sketch s;
+    EntityId l = s.addLine({0, 0}, {10, 0});
+    s.fixPoint(s.entity(l).p1);
+    s.fixPoint(s.entity(l).p2);
+    ConstraintId dim = s.addDimension(ConstraintType::Distance, s.entity(l).p1, s.entity(l).p2, "len");
+    EntityId free = s.addLine({3, 4}, {8, 9});
+    s.addConstraint({ConstraintType::Horizontal, free});
+    REQUIRE(s.solve(&params).ok());
+    const auto before = s.variables();
+    CHECK(s.constraints()[dim].value == doctest::Approx(10));
+
+    params.setExpression("len", "20 mm"); // conflicts with the fixed endpoints
+    CHECK(s.solve(&params).status == SolveStatus::Failed);
+    CHECK(s.variables() == before);
+    CHECK(s.constraints()[dim].value == doctest::Approx(10));
+
+    params.setExpression("len", "-5 mm"); // throws while resolving dimensions
+    CHECK_THROWS_AS(s.solve(&params), fuse::Error);
+    CHECK(s.variables() == before);
+    CHECK(s.constraints()[dim].value == doctest::Approx(10));
+}
+
+TEST_CASE("tangent to an arc") {
+    Sketch s;
+    EntityId ctr = s.addPoint({1, 1});
+    EntityId a = s.addPoint({9, 1}), b = s.addPoint({1, 9});
+    EntityId arc = s.addArc(ctr, a, b);
+    s.addConstraint({ConstraintType::Coincident, ctr, Sketch::kOrigin});
+    s.addDimension(ConstraintType::Radius, arc, -1, "10 mm");
+    EntityId l = s.addLine({-20, 12}, {20, 13});
+    s.addConstraint({ConstraintType::Horizontal, l});
+    s.addConstraint({ConstraintType::Tangent, arc, l}); // round entity first
+    REQUIRE(s.solve().ok());
+    CHECK(s.radius(arc) == doctest::Approx(10));
+    CHECK(s.lineStart(l).y == doctest::Approx(10).epsilon(1e-6));
+}
+
+TEST_CASE("distance from a point to a line") {
+    Sketch s;
+    EntityId l = s.addLine({-10, 0}, {10, 0});
+    s.fixPoint(s.entity(l).p1);
+    s.fixPoint(s.entity(l).p2);
+    EntityId p = s.addPoint({3, 7});
+    s.addDimension(ConstraintType::Distance, p, l, "5 mm");
+    REQUIRE(s.solve().ok());
+    CHECK(std::fabs(s.point(p).y) == doctest::Approx(5).epsilon(1e-6));
+    CHECK(s.point(p).x == doctest::Approx(3).epsilon(1e-6)); // moved only as far as needed
+}
+
+TEST_CASE("angle dimensions wrap past +-180 degrees") {
+    Sketch s;
+    EntityId h = s.addLine({0, 0}, {10, 0});
+    EntityId d = s.addLine(s.entity(h).p1, s.addPoint({-10, -1})); // starts at about -174 deg
+    s.addConstraint({ConstraintType::Coincident, s.entity(h).p1, Sketch::kOrigin});
+    s.addConstraint({ConstraintType::Horizontal, h});
+    s.addDimension(ConstraintType::Angle, h, d, "170 deg");
+    REQUIRE(s.solve().ok());
+    Vec2 hv = s.lineEnd(h) - s.lineStart(h);
+    Vec2 dv = s.lineEnd(d) - s.lineStart(d);
+    CHECK(std::atan2(cross(hv, dv), dot(hv, dv)) == doctest::Approx(170 * kPi / 180).epsilon(1e-6));
+}
+
+TEST_CASE("negative unsigned dimensions are errors") {
+    Sketch s;
+    EntityId c = s.addCircle({0, 0}, 5);
+    CHECK_THROWS_AS(s.addDimension(ConstraintType::Radius, c, -1, "-1 mm"), fuse::Error);
+    EntityId l = s.addLine({0, 0}, {10, 0});
+    CHECK_THROWS_AS(s.addDimension(ConstraintType::Distance, s.entity(l).p1, s.entity(l).p2, "-1"), fuse::Error);
+    // Signed dimensions may be negative.
+    s.addDimension(ConstraintType::HorizontalDistance, s.entity(l).p2, s.entity(l).p1, "-10 mm");
+
+    ParameterTable params;
+    params.add("r", "-3 mm");
+    s.addDimension(ConstraintType::Radius, c, -1, "r");
+    CHECK_THROWS_AS(s.solve(&params), fuse::Error);
 }

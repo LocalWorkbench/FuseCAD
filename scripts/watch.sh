@@ -1,15 +1,15 @@
 #!/usr/bin/env bash
 # Live-preview loop: rebuild and relaunch the app whenever a source file changes.
 # A failed build keeps the previous app running and prints the compiler errors.
-#   scripts/watch.sh [file.ocd]
+#   scripts/watch.sh [file.fcad]
 set -uo pipefail
 cd "$(dirname "$0")/.."
 
-PRESET="${OC_PRESET:-dev}"
+PRESET="${FUSE_PRESET:-dev}"
 [[ -d "build/$PRESET" ]] || cmake --preset "$PRESET"
 case "$(uname -s)" in
-    Darwin) APP="build/$PRESET/apps/opencircuit/opencircuit.app/Contents/MacOS/opencircuit" ;;
-    *)      APP="build/$PRESET/apps/opencircuit/opencircuit" ;;
+    Darwin) APP="build/$PRESET/apps/fusecad/fusecad.app/Contents/MacOS/fusecad" ;;
+    *)      APP="build/$PRESET/apps/fusecad/fusecad" ;;
 esac
 
 pid=""
@@ -18,7 +18,7 @@ trap 'stop_app; exit 0' INT TERM
 
 rebuild_and_launch() {
     echo "── building ($(date +%T)) ──"
-    if cmake --build --preset "$PRESET" --target opencircuit; then
+    if cmake --build --preset "$PRESET" --target fusecad; then
         stop_app
         "$APP" "$@" &
         pid=$!

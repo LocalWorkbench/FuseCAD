@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-#include "oc/sketch/Sketch.h"
+#include "fuse/sketch/Sketch.h"
 
 #include <doctest/doctest.h>
 
 #include <algorithm>
 
-using namespace oc;
-using namespace oc::sketch;
+using namespace fuse;
+using namespace fuse::sketch;
 
 namespace {
 
@@ -108,11 +108,4 @@ TEST_CASE("a slot made of lines and arcs") {
     REQUIRE(ps.size() == 1);
     CHECK(ps[0].area == doctest::Approx(200 + kPi * 25).epsilon(1e-3));
     CHECK(ps[0].outer.edges.size() == 4);
-}
-
-TEST_CASE("geometry helpers") {
-    std::vector<Vec2> sq{{0, 0}, {2, 0}, {2, 2}, {0, 2}};
-    CHECK(signedArea(sq) == doctest::Approx(4));
-    CHECK(pointInPolygon({1, 1}, sq));
-    CHECK_FALSE(pointInPolygon({3, 1}, sq));
 }

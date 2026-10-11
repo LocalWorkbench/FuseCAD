@@ -6,47 +6,40 @@
 #   model   features, timeline, document, file I/O    (kernel, nlohmann_json private)
 #   occt    OpenCASCADE implementation of Kernel      (kernel, OCCT private)
 
-oc_add_library(core
+fuse_add_library(core
     SOURCES
-        oc/core/Expression.cpp
-        oc/core/Parameters.cpp
-        oc/core/Units.cpp)
+        fuse/core/Expression.cpp
+        fuse/core/Parameters.cpp
+        fuse/core/Units.cpp)
 
-oc_add_library(sketch
+fuse_add_library(sketch
     SOURCES
-        oc/sketch/Profile.cpp
-        oc/sketch/Sketch.cpp
-        oc/sketch/Solver.cpp
-    PUBLIC_DEPS oc::core)
+        fuse/sketch/Profile.cpp
+        fuse/sketch/Sketch.cpp
+        fuse/sketch/Solver.cpp
+    PUBLIC_DEPS fuse::core)
 
-add_library(oc_kernel INTERFACE)
-add_library(oc::kernel ALIAS oc_kernel)
-target_link_libraries(oc_kernel INTERFACE oc::sketch)
+add_library(fuse_kernel INTERFACE)
+add_library(fuse::kernel ALIAS fuse_kernel)
+target_link_libraries(fuse_kernel INTERFACE fuse::sketch)
 
-oc_add_library(model
+fuse_add_library(model
     SOURCES
-        oc/model/Builders.cpp
-        oc/model/Document.cpp
-        oc/model/Features.cpp
-        oc/model/Samples.cpp
-        oc/model/Serialization.cpp
-    PUBLIC_DEPS oc::kernel
+        fuse/model/Builders.cpp
+        fuse/model/Document.cpp
+        fuse/model/Features.cpp
+        fuse/model/Samples.cpp
+        fuse/model/Serialization.cpp
+    PUBLIC_DEPS fuse::kernel
     PRIVATE_DEPS nlohmann_json::nlohmann_json)
 
-if(OC_WITH_OCCT)
-    # OCCT 7.8 merged the data-exchange toolkits into TKDE* libraries.
-    if(OpenCASCADE_VERSION VERSION_LESS 7.8)
-        set(_oc_occt_exchange TKXSBase TKSTEPBase TKSTEPAttr TKSTEP209 TKSTEP TKSTL)
-    else()
-        set(_oc_occt_exchange TKXSBase TKDE TKDESTEP TKDESTL)
-    endif()
-    oc_add_library(occt
-        SOURCES oc/occt/OcctKernel.cpp
-        PUBLIC_DEPS oc::kernel
+if(FUSE_WITH_OCCT)
+    # OCCT's imported targets carry their include directory as a system path,
+    # so its headers are exempt from our warning flags.
+    fuse_add_library(occt
+        SOURCES fuse/occt/OcctKernel.cpp
+        PUBLIC_DEPS fuse::kernel
         PRIVATE_DEPS
-            TKernel TKMath TKG2d TKG3d TKGeomBase TKGeomAlgo TKBRep TKTopAlgo
-            TKPrim TKBO TKBool TKFillet TKMesh TKShHealing
-            ${_oc_occt_exchange})
-    # OCCT headers trip our strict warnings; treat them as system headers.
-    target_include_directories(oc_occt SYSTEM PRIVATE ${OpenCASCADE_INCLUDE_DIR})
+            TKernel TKMath TKG3d TKGeomBase TKBRep TKTopAlgo TKPrim TKBO TKFillet TKMesh TKShHealing
+            TKXSBase TKDESTEP TKDESTL)
 endif()

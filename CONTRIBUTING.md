@@ -1,4 +1,4 @@
-# Contributing to OpenCircuit
+# Contributing to FuseCAD
 
 Thanks for helping! This page covers how to get a working build and what we
 expect from a change.
@@ -20,15 +20,19 @@ check the [roadmap](docs/ROADMAP.md) for what is planned.
 - **No warnings.** The `dev` and `ci` presets build with `-Werror`.
 - **Sanitizer clean.** `cmake --preset asan && cmake --build --preset asan && ctest --preset asan`
 - **Formatted.** Run `clang-format -i` on the files you touch (config in `.clang-format`).
-- **Static analysis.** `clang-tidy -p build/dev <file>` should report nothing new.
+  CI uses clang-format **23.1.3**; other major versions format differently. Get it with
+  `brew install clang-format` or `pipx install clang-format==23.1.3`.
+- **Static analysis.** `run-clang-tidy -p build/dev -quiet "$PWD/(src|apps|tests)/"` reports
+  nothing (config in `.clang-tidy`; CI runs this too). On macOS with Homebrew LLVM, add
+  `-extra-arg=-isysroot$(xcrun --show-sdk-path)`.
 - **Layering.** Dependencies point downwards only (see the architecture doc).
   Never include OpenCASCADE or Qt headers from `core`, `sketch` or `model`.
-- **Errors.** User-facing failures throw `oc::Error` with a message a CAD user
+- **Errors.** User-facing failures throw `fuse::Error` with a message a CAD user
   can act on ("fillet radius is too large for the selected edges").
 
 ## Conventions
 
-- C++20. `PascalCase` types, `camelCase` functions and variables, trailing `_` for members, `kPascalCase` constants.
+- C++20. `PascalCase` types, `camelCase` functions and variables, trailing `_` for private data members, `kPascalCase` constants.
 - Every source file starts with `// SPDX-License-Identifier: GPL-3.0-or-later`.
 - Comments explain *why*; the code should already say *what*.
 - Base units are millimetres and radians throughout the model.

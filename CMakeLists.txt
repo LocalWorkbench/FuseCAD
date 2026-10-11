@@ -1,9 +1,9 @@
-cmake_minimum_required(VERSION 3.24)
+cmake_minimum_required(VERSION 3.25)
 
-project(OpenCircuit
+project(FuseCAD
     VERSION 0.1.0
     DESCRIPTION "Open-source parametric CAD"
-    HOMEPAGE_URL "https://github.com/jareer/opencircuit"
+    HOMEPAGE_URL "https://github.com/OpenDeskOrg/fusecad"
     LANGUAGES CXX)
 
 if(PROJECT_SOURCE_DIR STREQUAL PROJECT_BINARY_DIR)
@@ -19,47 +19,39 @@ list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake")
 include(ProjectOptions)
 
 # --- Dependencies -------------------------------------------------------------
-find_package(nlohmann_json 3.11 QUIET CONFIG)
-if(NOT nlohmann_json_FOUND)
-    include(FetchContent)
-    FetchContent_Declare(nlohmann_json
-        URL https://github.com/nlohmann/json/releases/download/v3.12.0/json.tar.xz
-        URL_HASH SHA256=42f6e95cad6ec532fd372391373363b62a14af6d771056dbfc86160e6dfff7aa
-        DOWNLOAD_EXTRACT_TIMESTAMP ON)
-    FetchContent_MakeAvailable(nlohmann_json)
-endif()
+find_package(nlohmann_json 3.11 CONFIG REQUIRED)
 
-if(OC_WITH_OCCT)
+if(FUSE_WITH_OCCT)
+    # No version argument: OCCT's config file only accepts an exact patch match.
     find_package(OpenCASCADE CONFIG REQUIRED)
+    if(OpenCASCADE_VERSION VERSION_LESS 7.8)
+        message(FATAL_ERROR "OpenCASCADE >= 7.8 is required, found ${OpenCASCADE_VERSION} in ${OpenCASCADE_DIR}")
+    endif()
     message(STATUS "OpenCASCADE ${OpenCASCADE_VERSION}: ${OpenCASCADE_DIR}")
 endif()
 
-if(OC_BUILD_APP)
-    if(NOT OC_WITH_OCCT)
-        message(FATAL_ERROR "OC_BUILD_APP requires OC_WITH_OCCT")
-    endif()
-    find_package(Qt6 6.5 REQUIRED COMPONENTS Widgets OpenGL OpenGLWidgets)
-    qt_standard_project_setup()
+if(FUSE_BUILD_APP AND NOT FUSE_WITH_OCCT)
+    message(FATAL_ERROR "FUSE_BUILD_APP requires FUSE_WITH_OCCT")
 endif()
 
 # --- Targets ------------------------------------------------------------------
-if(OC_BUILD_TESTS)
+if(FUSE_BUILD_TESTS)
     enable_testing() # before apps/, which registers the CLI smoke test
 endif()
 
 add_subdirectory(src)
 add_subdirectory(apps)
 
-if(OC_BUILD_TESTS)
+if(FUSE_BUILD_TESTS)
     add_subdirectory(tests)
 endif()
 
 # --- Summary ------------------------------------------------------------------
 message(STATUS "")
-message(STATUS "OpenCircuit ${PROJECT_VERSION}")
-message(STATUS "  OpenCASCADE kernel : ${OC_WITH_OCCT}")
-message(STATUS "  Desktop app (Qt 6) : ${OC_BUILD_APP}")
-message(STATUS "  Tests              : ${OC_BUILD_TESTS}")
-message(STATUS "  Sanitizers         : ${OC_SANITIZERS}")
-message(STATUS "  Warnings as errors : ${OC_WARNINGS_AS_ERRORS}")
+message(STATUS "FuseCAD ${PROJECT_VERSION}")
+message(STATUS "  OpenCASCADE kernel : ${FUSE_WITH_OCCT}")
+message(STATUS "  Desktop app (Qt 6) : ${FUSE_BUILD_APP}")
+message(STATUS "  Tests              : ${FUSE_BUILD_TESTS}")
+message(STATUS "  Sanitizers         : ${FUSE_SANITIZERS}")
+message(STATUS "  Warnings as errors : ${FUSE_WARNINGS_AS_ERRORS}")
 message(STATUS "")
