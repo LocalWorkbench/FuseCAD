@@ -9,6 +9,13 @@ expect from a change.
 2. `cmake --preset dev && cmake --build --preset dev && ctest --preset dev`
 3. Run the app with `scripts/run.sh`, or `scripts/watch.sh` to rebuild on every save.
 
+| Preset | Purpose |
+|---|---|
+| `dev` | Debug build of everything, warnings as errors |
+| `ci` | `dev` without the Qt app (headless) |
+| `asan` | `ci` plus AddressSanitizer and UndefinedBehaviorSanitizer |
+| `core-only` | `core`, `sketch` and `model` and their tests, without OpenCASCADE or Qt |
+
 Read [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) before larger changes, and
 check the [roadmap](docs/ROADMAP.md) for what is planned.
 

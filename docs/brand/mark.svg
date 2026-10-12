@@ -1,13 +1,1 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="20 20 216 216" width="256" height="256">
-  <title>FuseCAD</title>
-  <defs>
-    <linearGradient id="fc-top" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#8d9bff"/><stop offset="1" stop-color="#5f6ff2"/></linearGradient>
-    <linearGradient id="fc-right" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3b4ad4"/><stop offset="1" stop-color="#242f9e"/></linearGradient>
-  </defs>
-  <path d="M128 32 L211 80 L211 176 L128 224 L128 128 L45 80 Z" fill="none"/>
-  <path d="M128 32 L211 80 L128 128 L45 80 Z" fill="url(#fc-top)" stroke="url(#fc-top)" stroke-width="2" stroke-linejoin="round"/>
-  <path d="M128 128 L211 80 L211 176 L128 224 Z" fill="url(#fc-right)" stroke="url(#fc-right)" stroke-width="2" stroke-linejoin="round"/>
-  <path d="M45 80 L128 128 L128 224 L45 176 Z" fill="#22b8cf" fill-opacity=".12" stroke="#22b8cf" stroke-width="8" stroke-linejoin="round"/>
-  <path d="M45 80 L128 224" stroke="#22b8cf" stroke-width="4" stroke-linecap="round" stroke-dasharray="2 10" />
-  <g fill="#ffffff" stroke="#22b8cf" stroke-width="6"><circle cx="45" cy="80" r="10"/><circle cx="45" cy="176" r="10"/><circle cx="128" cy="224" r="10"/></g>
-</svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256"><title>FuseCAD</title><path d="M187.27 46.22 L228.46 70.00 L228.46 186.00 L169.19 220.22 L169.19 151.78 L169.19 104.22 L128.00 80.44 Z" fill="#7b88ff" stroke="#7b88ff" stroke-width="5.80" stroke-linejoin="round"/><path d="M169.19 220.22 L128.00 244.00 L27.54 186.00 L27.54 117.56 L86.81 151.78 L128.00 175.56 L169.19 151.78 Z" fill="#4b59ee" stroke="#4b59ee" stroke-width="5.80" stroke-linejoin="round"/><path d="M27.54 117.56 L27.54 70.00 L128.00 12.00 L187.27 46.22 L128.00 80.44 L86.81 104.22 L86.81 151.78 Z" fill="#2a35a6" stroke="#2a35a6" stroke-width="5.80" stroke-linejoin="round"/></svg>
