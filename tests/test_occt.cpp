@@ -267,3 +267,28 @@ TEST_CASE("builders: box with a cylindrical hole, filleted") {
     CHECK(kernel->volume(onlyBody(doc).shape) ==
           doctest::Approx((60.0 * 60 - (4 - kPi) * 4) * 10 - kPi * 7.5 * 7.5 * 10).epsilon(1e-6));
 }
+
+TEST_CASE("pillow block sample builds one valid body and follows its parameters") {
+    auto kernel = occt::createKernel();
+    Document doc = samples::pillowBlock();
+    RecomputeReport r = doc.recompute(*kernel);
+    REQUIRE_MESSAGE(r.ok(), (r.messages.empty() ? "" : r.messages.front()));
+    for (const auto& f : doc.features()) CHECK_MESSAGE(f->healthy(), f->name);
+
+    const Body& b = onlyBody(doc);
+    CHECK(kernel->isValid(b.shape));
+    CHECK(kernel->countFaces(b.shape) == 34);
+    BoundingBox box = kernel->boundingBox(b.shape);
+    CHECK(box.max.x - box.min.x == doctest::Approx(150));
+    CHECK(box.max.y - box.min.y == doctest::Approx(56));
+    CHECK(box.max.z - box.min.z == doctest::Approx(62 + 36 + 8)); // centre_h + boss_d / 2 + nipple_h
+
+    doc.parameters().setExpression("base_l", "170 mm");
+    REQUIRE(doc.recompute(*kernel).ok());
+    box = kernel->boundingBox(onlyBody(doc).shape);
+    CHECK(box.max.x - box.min.x == doctest::Approx(170));
+
+    Document copy = Document::fromJson(doc.toJson());
+    REQUIRE(copy.recompute(*kernel).ok());
+    CHECK(kernel->volume(onlyBody(copy).shape) == doctest::Approx(kernel->volume(onlyBody(doc).shape)));
+}

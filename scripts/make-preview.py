@@ -3,7 +3,7 @@
 """Build the README hero image (docs/images/screenshot.png).
 
 Usage:
-    scripts/make-preview.py              capture the flange sample from build/dev, then compose
+    scripts/make-preview.py              capture the pillow-block sample from build/dev, then compose
     scripts/make-preview.py shot.png     compose from an existing capture
 
 The capture is the app's own --screenshot output, or a macOS window capture
@@ -35,8 +35,8 @@ OUTPUT_WIDTH = 2000  # final PNG width; keeps the README image light
 
 
 def capture(tmp: Path) -> Path:
-    doc, shot = tmp / "flange.fcad", tmp / "shot.png"
-    subprocess.run([CLI, "new", doc, "--sample", "flange"], check=True, capture_output=True)
+    doc, shot = tmp / "Pillow Block.fcad", tmp / "shot.png"
+    subprocess.run([CLI, "new", doc, "--sample", "pillow-block"], check=True, capture_output=True)
     subprocess.run([APP, doc, "--screenshot", shot], check=True)
     return shot
 

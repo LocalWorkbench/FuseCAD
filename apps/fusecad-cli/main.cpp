@@ -2,7 +2,7 @@
 //
 // fusecad-cli: headless access to the FuseCAD modelling stack.
 //
-//   fusecad-cli new <file.fcad> [--sample plate|flange]
+//   fusecad-cli new <file.fcad> [--sample plate|flange|pillow-block]
 //   fusecad-cli info <file.fcad> [-p name=expr]...
 //   fusecad-cli set <file.fcad> name=expr...
 //   fusecad-cli export <file.fcad> <out.step|out.stp|out.stl> [-p name=expr]...
@@ -73,15 +73,17 @@ std::vector<fuse::ShapePtr> allShapes(const fuse::Document& doc) {
 int cmdNew(const std::vector<std::string>& args) {
     const bool plain = args.size() == 1;
     const bool withSample = args.size() == 3 && args[1] == "--sample";
-    if (!plain && !withSample) throw UsageError("new takes <file.fcad> [--sample plate|flange]");
+    if (!plain && !withSample) throw UsageError("new takes <file.fcad> [--sample plate|flange|pillow-block]");
     fuse::Document doc;
     if (args.size() == 3) {
         if (args[2] == "plate")
             doc = fuse::samples::mountingPlate();
         else if (args[2] == "flange")
             doc = fuse::samples::flange();
+        else if (args[2] == "pillow-block")
+            doc = fuse::samples::pillowBlock();
         else
-            throw UsageError("unknown sample '" + args[2] + "' (available: plate, flange)");
+            throw UsageError("unknown sample '" + args[2] + "' (available: plate, flange, pillow-block)");
     }
     doc.save(args[0]);
     std::cout << "wrote " << args[0] << "\n";

@@ -47,6 +47,7 @@ void Workbench::registerCommands(CommandRegistry& c, MainWindow& w) {
     c.add("file.new-tab", tr("New Design Tab"), "plus", todo);
     c.add("sample.plate", tr("Mounting Plate"), "body", [&w] { w.openSample(&fuse::samples::mountingPlate); });
     c.add("sample.flange", tr("Flange"), "revolve", [&w] { w.openSample(&fuse::samples::flange); });
+    c.add("sample.pillow-block", tr("Pillow Block"), "joint", [&w] { w.openSample(&fuse::samples::pillowBlock); });
     c.add("edit.undo", tr("Undo"), "undo", [&doc] { doc.undo(); }, QKeySequence::Undo);
     c.add("edit.redo", tr("Redo"), "redo", [&doc] { doc.redo(); }, QKeySequence::Redo);
     c.add("edit.feature", tr("Edit Feature"), "sketch", todo);
@@ -235,6 +236,7 @@ void Workbench::addFileCommands(CommandRegistry& commands, QMenu& menu) {
     QMenu* samples = menu.addMenu(icons::get("doc"), tr("New from Sample"));
     samples->addAction(commands.get("sample.plate"));
     samples->addAction(commands.get("sample.flange"));
+    samples->addAction(commands.get("sample.pillow-block"));
     menu.addSeparator();
     for (const char* id : {"file.save", "file.saveas"}) menu.addAction(commands.get(id));
     menu.addSeparator();

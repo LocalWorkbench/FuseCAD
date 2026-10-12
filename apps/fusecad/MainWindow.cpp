@@ -94,7 +94,7 @@ MainWindow::~MainWindow() = default;
 
 void MainWindow::openInitial(const QString& path) {
     if (path.isEmpty() || !openFile(path)) {
-        controller_->setDocument(fuse::samples::mountingPlate());
+        controller_->setDocument(fuse::samples::pillowBlock());
         viewport_->homeView();
     }
 }

@@ -10,7 +10,7 @@ expect from a change.
 3. Run the app with `scripts/run.sh`, or `scripts/watch.sh` to rebuild on every save.
 
 After a visible UI change, refresh the README image with `scripts/make-preview.py`
-(needs Pillow). It captures the flange sample from `build/dev` and composes it.
+(needs Pillow). It captures the pillow-block sample from `build/dev` and composes it.
 
 | Preset | Purpose |
 |---|---|
