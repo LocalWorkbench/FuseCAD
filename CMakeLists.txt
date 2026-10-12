@@ -30,10 +30,6 @@ if(FUSE_WITH_OCCT)
     message(STATUS "OpenCASCADE ${OpenCASCADE_VERSION}: ${OpenCASCADE_DIR}")
 endif()
 
-if(FUSE_BUILD_APP AND NOT FUSE_WITH_OCCT)
-    message(FATAL_ERROR "FUSE_BUILD_APP requires FUSE_WITH_OCCT")
-endif()
-
 # --- Targets ------------------------------------------------------------------
 if(FUSE_BUILD_TESTS)
     enable_testing() # before apps/, which registers the CLI smoke test
@@ -50,7 +46,6 @@ endif()
 message(STATUS "")
 message(STATUS "FuseCAD ${PROJECT_VERSION}")
 message(STATUS "  OpenCASCADE kernel : ${FUSE_WITH_OCCT}")
-message(STATUS "  Desktop app (Qt 6) : ${FUSE_BUILD_APP}")
 message(STATUS "  Tests              : ${FUSE_BUILD_TESTS}")
 message(STATUS "  Sanitizers         : ${FUSE_SANITIZERS}")
 message(STATUS "  Warnings as errors : ${FUSE_WARNINGS_AS_ERRORS}")

@@ -13,34 +13,26 @@
       }
     },
     {
-      "name": "ci",
-      "displayName": "Headless: dev without the Qt app",
-      "inherits": "dev",
-      "cacheVariables": { "FUSE_BUILD_APP": "OFF" }
-    },
-    {
       "name": "asan",
-      "displayName": "Headless + AddressSanitizer + UBSan",
-      "inherits": "ci",
+      "displayName": "dev + AddressSanitizer + UBSan",
+      "inherits": "dev",
       "cacheVariables": { "FUSE_SANITIZERS": "address;undefined" }
     },
     {
       "name": "core-only",
-      "displayName": "Core libraries only (no OCCT, no Qt)",
+      "displayName": "Core libraries only (no OCCT)",
       "inherits": "dev",
-      "cacheVariables": { "FUSE_WITH_OCCT": "OFF", "FUSE_BUILD_APP": "OFF" }
+      "cacheVariables": { "FUSE_WITH_OCCT": "OFF" }
     }
   ],
   "buildPresets": [
     { "name": "dev", "configurePreset": "dev" },
-    { "name": "ci", "configurePreset": "ci" },
     { "name": "asan", "configurePreset": "asan" },
     { "name": "core-only", "configurePreset": "core-only" }
   ],
   "testPresets": [
     { "name": "base", "hidden": true, "output": { "outputOnFailure": true } },
     { "name": "dev", "inherits": "base", "configurePreset": "dev" },
-    { "name": "ci", "inherits": "base", "configurePreset": "ci" },
     { "name": "asan", "inherits": "base", "configurePreset": "asan" },
     { "name": "core-only", "inherits": "base", "configurePreset": "core-only" }
   ]

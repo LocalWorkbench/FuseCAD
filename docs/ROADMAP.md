@@ -2,89 +2,94 @@
 
 What we plan to work on next, in rough order. **Everything here is subject to
 change**: items may move, merge or be dropped as we learn more. Each milestone
-should leave the application usable.
+should leave the project usable.
 
-**Goal for 1.0:** the complete part-modelling workflow by mouse alone. Sketch on
-a plane or face, dimension it, extrude with a live preview, pick edges to
-fillet, edit any step from the timeline, change a parameter and watch the design
-regenerate.
+**Goal for 1.0:** single-part modelling that a person can do entirely in the
+interface and an agent can do entirely through the API, with the same
+commands. Sketch on a plane or face, dimension it, extrude with a live
+preview, pick edges to fillet, edit any step from the timeline, change a
+parameter and watch the design regenerate, export STEP.
 
 ## Where we are (0.1)
-The parametric core, solver, OpenCASCADE kernel, file format, CLI and desktop
-shell all exist. Designs can be created from code and the CLI, but not yet
-interactively in the viewport.
+The engine exists: expression language and parameters, sketch constraint
+solver, OpenCASCADE kernel, feature timeline with recompute and undo, the
+`.fcad` format and the command-line tool. The first interface was removed so
+the new one can be designed around commands from the start.
 
-## 0.1.x: Name and identity
-- [x] Rename the project to FuseCAD: app, bundle id, CLI, namespaces, docs, CI
-- [x] Native file extension `.fcad`
-- [x] App icon and README logo from `docs/brand/`
 - [ ] Rename the GitHub repository to match
 
-## 0.2: Selection
-The foundation every interactive command depends on.
+## 0.2: Commands
+The single entry point that the interface and agents will share.
+- [ ] Every document edit is a typed command with a machine-readable schema
+      (name, arguments, units, result, errors)
+- [ ] One executor: validate, apply, record an undo step, report what changed
+- [ ] Commands carry their origin (person, script, agent) onto the timeline
+- [ ] Read-only queries as commands too: parameters, features, bodies, mass
+      properties, bounding box, measurements
+- [ ] The CLI rebuilt on top of the command layer
+
+## 0.3: Interface shell (Qt Quick)
+A viewport-first window with as little chrome as possible, polished from the
+first build. Every control is our own QML component styled from one set of
+design tokens (colour, type, spacing, radius, motion); no platform-native
+widgets or default control styles.
+- [ ] Design system: tokens, Inter typography, icon set, and the base controls
+      (button, field, slider, menu, popover, tooltip, list, toast)
+- [ ] Full-window viewport drawn by our own renderer on Qt's GPU layer
+      (Metal, Vulkan, Direct3D) inside the Qt Quick scene, with panels over
+      it; orbit, pan, zoom, view snapping
+- [ ] All native: no embedded web content; performance-critical items are
+      custom scene-graph nodes in C++, with QML only for layout and binding
+- [ ] Dark, flat visual language: one accent colour, crisp edges, short
+      purposeful animations, no ornament
+- [ ] Keyboard-first: command palette, single-key shortcuts, every command
+      reachable without menus
+- [ ] Compact floating panels for the timeline, parameters and the active
+      command's options, shown only when relevant
+- [ ] Open, save, undo and redo wired to the command layer
+
+## 0.4: Agent access
+Exposes exactly the commands the interface already offers.
+- [ ] API and MCP server over the command layer, running inside the app
+- [ ] Agent edits appear live in the viewport and on the timeline, and undo
+      like any other edit
+- [ ] Viewport snapshot and geometric queries so agents can check their work
+- [ ] Parity test: the build fails if a command is exposed to agents without
+      an interface binding
+
+## 0.5: Selection and persistent naming
 - [ ] Tessellation that records which face, edge and vertex each piece came from
-- [ ] GPU picking of faces, edges, vertices and bodies
-- [ ] Hover pre-highlight, selection set, selection filters
-- [ ] Kernel queries for what was picked (plane, cylinder, normal, axis, length)
-- [ ] Selection synced between the viewport and the browser
-- [ ] Design document for persistent naming (see 0.3)
-
-## 0.3: Persistent naming
-References to faces and edges must survive upstream edits; this is the most
-important open design problem.
-- [ ] Element map built from the kernel's modification history (which feature
-      created or changed each face and edge)
+- [ ] Picking with hover highlight and selection filters; selection is shared
+      state that agents can read and set
+- [ ] Element map from the kernel's modification history, so references to
+      faces and edges survive upstream edits
 - [ ] Fillet and chamfer reference named edges, replacing `EdgeQuery`
-- [ ] Clear errors when a reference really disappears, and a way to re-pick it
-- [ ] Tests: change upstream parameters, check references still resolve
 
-## 0.4: Interactive sketcher
-- [ ] Create Sketch on an origin plane or a planar face; camera aligns to it
+## 0.6: Sketcher
+- [ ] Sketch on an origin plane or a planar face; camera aligns to it
 - [ ] Line, rectangle, circle, arc and point tools; construction toggle
-- [ ] Snapping and automatically inferred constraints
-- [ ] Drag geometry to solve; dimension input boxes bound to parameters
-- [ ] Constraint and dimension glyphs; colour fully constrained geometry
-- [ ] Split crossing curves at intersections for profile detection
+- [ ] Snapping and inferred constraints; drag to solve
+- [ ] Dimensions bound to parameters; fully constrained geometry highlighted
 - [ ] Trim, extend, offset, fillet in sketch
 
-## 0.5: Selection-driven features (first demo release)
-- [ ] Extrude and Revolve from selected profiles, with live preview and drag handles
-- [ ] Fillet and Chamfer from selected edges, with live preview
-- [ ] Edit Feature: double-click a timeline entry to reopen its command
-- [ ] Feature errors and warnings shown on the timeline and in the viewport
-- [ ] Sketches on faces follow model changes
-
-## 0.6: Modelling breadth
-- [ ] Construction geometry: offset plane, plane at angle, midplane, axis, point
-- [ ] Hole (simple, counterbore, countersink, threaded)
-- [ ] Shell, draft, press-pull
-- [ ] Mirror, rectangular and circular patterns
-- [ ] Sweep and loft
-- [ ] Combine, split body, move/copy
-- [ ] Measure tool; appearances and physical materials (mass, centre of gravity)
-
-## 0.7: Assemblies
-- [ ] Components and occurrences
-- [ ] Joints and degrees of freedom
-- [ ] Interference checking
+## 0.7: Features
+- [ ] Extrude and revolve from selected profiles, with live preview and handles
+- [ ] Fillet, chamfer, shell, hole, mirror, linear and circular pattern
+- [ ] Edit any feature from the timeline; errors shown where they happen
+- [ ] Construction planes and axes; measure tool; materials and mass properties
 
 ## Continuous: production readiness
 Worked on alongside every milestone, and required for 1.0.
 - [ ] Recompute in the background, with per-feature result caching
 - [ ] Autosave and crash recovery
 - [x] Every kernel call guarded; results validated before use
-- [ ] Fuzz testing of the document loader
+- [ ] Fuzz testing of the document loader and of command arguments
 - [ ] Performance budget for large designs (recompute, tessellation, frame rate)
 - [ ] Signed macOS builds; Windows and Linux packages; release automation
-- [ ] User documentation and a getting-started tutorial
+- [ ] User documentation, and a guide for driving FuseCAD from an agent
 
-## Later
-The rest of the platform, after 1.0.
-- [ ] Surface modelling and sheet metal
-- [ ] Motion studies for assemblies
-- [ ] Drawings: production drawings with views and dimensions from the 3D model
-- [ ] CAM: milling, turning and additive toolpaths
-- [ ] Simulation: structural, thermal and modal analysis
-- [ ] Electronics: schematics and PCBs linked to the mechanical design
-- [ ] Python scripting API
-- [ ] Dark theme
+## After 1.0
+Considered only once single-part modelling is solid.
+- [ ] Assemblies and joints
+- [ ] Sweep, loft and surface modelling
+- [ ] Production drawings

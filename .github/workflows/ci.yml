@@ -25,7 +25,7 @@ jobs:
         run: git ls-files '*.cpp' '*.h' | xargs pipx run --spec "clang-format==$CLANG_FORMAT_VERSION" clang-format --dry-run --Werror
 
   core:
-    name: Core (Linux, no OCCT/Qt)
+    name: Core (Linux, no OCCT)
     runs-on: ubuntu-26.04
     steps:
       - uses: actions/checkout@v5
@@ -36,18 +36,18 @@ jobs:
       - run: ctest --preset core-only
 
   linux:
-    name: Linux (OCCT + Qt app)
+    name: Linux (OCCT)
     runs-on: ubuntu-26.04
     steps:
       - uses: actions/checkout@v5
       - name: Install dependencies
-        run: sudo apt-get update -qq && sudo apt-get install -y -qq $APT_BASE $APT_OCCT qt6-base-dev libgl-dev
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq $APT_BASE $APT_OCCT
       - run: cmake --preset dev
       - run: cmake --build --preset dev
       - run: ctest --preset dev
 
   sanitizers:
-    name: Linux (headless, ASan + UBSan)
+    name: Linux (ASan + UBSan)
     runs-on: ubuntu-26.04
     steps:
       - uses: actions/checkout@v5
@@ -63,21 +63,19 @@ jobs:
     steps:
       - uses: actions/checkout@v5
       - name: Install dependencies
-        run: sudo apt-get update -qq && sudo apt-get install -y -qq $APT_BASE $APT_OCCT qt6-base-dev libgl-dev clang clang-tidy
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq $APT_BASE $APT_OCCT clang clang-tidy
       - name: Configure
         run: cmake --preset dev -DCMAKE_CXX_COMPILER=clang++
-      - name: Generate Qt sources
-        run: cmake --build --preset dev --target fusecad_autogen
       - name: Run clang-tidy
         run: run-clang-tidy -p build/dev -quiet -warnings-as-errors='*' "$PWD/(src|apps|tests)/"
 
   macos:
-    name: macOS (OCCT + Qt app)
+    name: macOS (OCCT)
     runs-on: macos-15
     steps:
       - uses: actions/checkout@v5
       - name: Install dependencies
-        run: brew install ninja opencascade qt nlohmann-json doctest
+        run: brew install ninja opencascade nlohmann-json doctest
       - run: cmake --preset dev
       - run: cmake --build --preset dev
       - run: ctest --preset dev

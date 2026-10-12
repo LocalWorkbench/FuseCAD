@@ -1,5 +1,4 @@
 option(FUSE_WITH_OCCT "Build the OpenCASCADE geometry kernel backend" ON)
-option(FUSE_BUILD_APP "Build the Qt 6 desktop application" ON)
 option(FUSE_BUILD_TESTS "Build unit and integration tests" ON)
 option(FUSE_WARNINGS_AS_ERRORS "Treat compiler warnings as errors" OFF)
 set(FUSE_SANITIZERS "" CACHE STRING "Semicolon-separated sanitizers, e.g. address;undefined")

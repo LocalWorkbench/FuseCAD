@@ -5,45 +5,48 @@
   </picture>
 </p>
 
-<p align="center"><b>Professional 3D CAD, CAM and CAE. Free and open source.</b></p>
+<p align="center"><b>Parametric CAD for people and their agents. Free and open source.</b></p>
 
-![FuseCAD](docs/images/screenshot.png)
+FuseCAD is a parametric part modeller built on two equal footings. People get
+a fast, quiet interface where the model fills the screen and every tool sits
+one keystroke away. Agents get the very same tools through an API and an MCP
+server, so they can sketch, dimension, model, measure and export alongside you.
 
-FuseCAD is one application for the whole product-development workflow, from
-the first sketch to the part on the machine. No subscriptions, no cloud
-lock-in, no feature tiers: every capability is free, and your designs stay in
-open files on your own disk.
+## Principles
 
-## One platform
+- **Polished from day one.** A modern, minimal interface with its own design
+  system: no dated toolbars, no stock platform widgets.
+- **Interface first, agents equal.** Every capability ships in the interface
+  first. The command behind it is then exposed to scripts and agents unchanged:
+  no agent-only features and no hidden headless paths.
+- **One history.** Whether a person or an agent made an edit, it lands on the
+  same timeline, can be inspected and undone, and is regenerated from parameters.
+- **Few things, done well.** Version 1 is single-part modelling: constrained
+  sketches, solid features and STEP/STL export, made robust before anything
+  else is added.
+- **Open all the way down.** OpenCASCADE kernel, open `.fcad` JSON files on
+  your own disk, GPL-3.0.
 
-- **Design:** parametric solid, surface and sheet-metal modelling on a full history timeline
-- **Assemble:** components, joints and motion studies
-- **Document:** production drawings generated from the 3D model
-- **Manufacture:** CAM toolpaths for milling, turning and additive
-- **Simulate:** structural, thermal and modal analysis
-- **Electronics:** schematics and PCBs linked to the mechanical design
-
-**Status:** pre-release, in active development. The [roadmap](docs/ROADMAP.md)
-shows what works today and what comes next.
+**Status:** pre-release. The modelling engine and the command-line tool work;
+the interface is being written from scratch. See the [roadmap](docs/ROADMAP.md).
 
 ## Build
 
 Requires CMake ≥ 3.25, Ninja, a C++20 compiler, [OpenCASCADE](https://occt3d.com) ≥ 7.8,
-Qt ≥ 6.5, nlohmann-json and doctest.
+nlohmann-json and doctest.
 
 macOS:
 
 ```sh
-brew install cmake ninja opencascade qt nlohmann-json doctest
-cmake --preset dev && cmake --build --preset dev
-open build/dev/apps/fusecad/fusecad.app
+brew install cmake ninja opencascade nlohmann-json doctest
+cmake --preset dev && cmake --build --preset dev && ctest --preset dev
+build/dev/apps/fusecad-cli/fusecad-cli new part.fcad --sample pillow-block
 ```
 
 Ubuntu 26.04:
 
 ```sh
-sudo apt install cmake ninja-build g++ nlohmann-json3-dev doctest-dev \
-  libocct-data-exchange-dev qt6-base-dev libgl-dev
+sudo apt install cmake ninja-build g++ nlohmann-json3-dev doctest-dev libocct-data-exchange-dev
 cmake --preset dev && cmake --build --preset dev && ctest --preset dev
 ```
 
@@ -53,4 +56,4 @@ cmake --preset dev && cmake --build --preset dev && ctest --preset dev
 
 ## License
 
-[GPL-3.0-or-later](LICENSE). Uses OpenCASCADE (LGPL-2.1 with exception) and Qt (LGPL-3.0).
+[GPL-3.0-or-later](LICENSE). Uses OpenCASCADE (LGPL-2.1 with exception).

@@ -19,7 +19,7 @@ IncludeCategories:
     Priority: 1
   - Regex: '^<.*\.hxx>$' # OpenCASCADE
     Priority: 2
-  - Regex: '^<(doctest/|nlohmann/|Q)' # doctest, nlohmann-json, Qt
+  - Regex: '^<(doctest/|nlohmann/)' # doctest, nlohmann-json
     Priority: 2
   - Regex: '^<'
     Priority: 3

@@ -2,7 +2,6 @@
 # Generate the logo SVGs in docs/brand: mark, wordmarks (text as outlines) and app icon.
 # Usage: python3 scripts/make-brand.py <dir with InterDisplay-Bold.ttf and -Regular.ttf> docs/brand
 # Needs: pip install fonttools uharfbuzz. Inter: https://github.com/rsms/inter (SIL OFL).
-# Then run scripts/make-icons.sh to rebuild the app icons.
 import math, sys, uharfbuzz as hb
 from fontTools.ttLib import TTFont
 from fontTools.pens.svgPathPen import SVGPathPen
