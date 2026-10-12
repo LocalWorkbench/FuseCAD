@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 #pragma once
 
+#include "fuse/core/EnumTable.h"
 #include "fuse/core/Math.h"
 #include "fuse/sketch/Profile.h"
 
@@ -46,6 +47,13 @@ struct EdgeQuery {
     Vec3 direction{0, 0, 1};
     std::vector<Vec3> points;
 };
+
+inline constexpr auto kEdgeQueryModes = makeEnumTable<EnumName<EdgeQuery::Mode>>({
+    {EdgeQuery::Mode::All, "all"},
+    {EdgeQuery::Mode::ParallelTo, "parallel_to"},
+    {EdgeQuery::Mode::NearPoints, "near_points"},
+});
+constexpr const auto& enumTable(EdgeQuery::Mode) { return kEdgeQueryModes; }
 
 struct BoundingBox {
     Vec3 min, max;

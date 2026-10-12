@@ -12,6 +12,7 @@
 #include <nlohmann/json.hpp>
 
 #include <concepts>
+#include <map>
 
 namespace fuse {
 
@@ -20,25 +21,6 @@ using nlohmann::json;
 namespace {
 
 // --- enums -----------------------------------------------------------------
-
-constexpr auto kPlanes = makeEnumTable<EnumName<SketchPlane>>({
-    {SketchPlane::XY, "XY"},
-    {SketchPlane::XZ, "XZ"},
-    {SketchPlane::YZ, "YZ"},
-});
-
-constexpr auto kEntityTypes = makeEnumTable<EnumName<sketch::EntityType>>({
-    {sketch::EntityType::Point, "point"},
-    {sketch::EntityType::Line, "line"},
-    {sketch::EntityType::Circle, "circle"},
-    {sketch::EntityType::Arc, "arc"},
-});
-
-constexpr auto kEdgeModes = makeEnumTable<EnumName<EdgeQuery::Mode>>({
-    {EdgeQuery::Mode::All, "all"},
-    {EdgeQuery::Mode::ParallelTo, "parallel_to"},
-    {EdgeQuery::Mode::NearPoints, "near_points"},
-});
 
 // Reads a string key and maps it through `parse` (a parseX function or an EnumTable).
 template <class Parse>
@@ -61,7 +43,7 @@ json vec3(Vec3 v) { return json::array({v.x, v.y, v.z}); }
 Vec3 vec3(const json& j) { return {j.at(0).get<double>(), j.at(1).get<double>(), j.at(2).get<double>()}; }
 
 json edgeQueryToJson(const EdgeQuery& q) {
-    json j{{"mode", kEdgeModes.name(q.mode)}};
+    json j{{"mode", kEdgeQueryModes.name(q.mode)}};
     if (q.mode == EdgeQuery::Mode::ParallelTo) j["direction"] = vec3(q.direction);
     if (q.mode == EdgeQuery::Mode::NearPoints) {
         j["points"] = json::array();
@@ -72,7 +54,7 @@ json edgeQueryToJson(const EdgeQuery& q) {
 
 EdgeQuery edgeQueryFromJson(const json& j) {
     EdgeQuery q;
-    q.mode = parseKey(j, "mode", "edge selection mode", kEdgeModes);
+    q.mode = parseKey(j, "mode", "edge selection mode", kEdgeQueryModes);
     if (q.mode == EdgeQuery::Mode::ParallelTo) q.direction = vec3(j.at("direction"));
     if (q.mode == EdgeQuery::Mode::NearPoints)
         for (const auto& p : j.at("points")) q.points.push_back(vec3(p));
@@ -101,7 +83,7 @@ BodyOperation operationFromJson(const json& j) {
 json sketchToJson(const sketch::Sketch& s) {
     json entities = json::array();
     for (const auto& e : s.entities()) {
-        json je{{"type", kEntityTypes.name(e.type)}};
+        json je{{"type", sketch::kEntityTypes.name(e.type)}};
         if (e.var >= 0) je["var"] = e.var;
         if (e.p1 >= 0) je["p1"] = e.p1;
         if (e.p2 >= 0) je["p2"] = e.p2;
@@ -126,7 +108,7 @@ sketch::Sketch sketchFromJson(const json& j) {
     std::vector<sketch::Entity> entities;
     for (const auto& je : j.at("entities")) {
         sketch::Entity e;
-        e.type = parseKey(je, "type", "sketch entity type", kEntityTypes);
+        e.type = parseKey(je, "type", "sketch entity type", sketch::kEntityTypes);
         e.var = je.value("var", -1);
         e.p1 = je.value("p1", -1);
         e.p2 = je.value("p2", -1);
@@ -154,12 +136,27 @@ sketch::Sketch sketchFromJson(const json& j) {
 
 // --- features --------------------------------------------------------------
 
+json actorToJson(const Actor& a) {
+    json j{{"kind", kActorKinds.name(a.kind)}};
+    if (!a.name.empty()) j["name"] = a.name;
+    return j;
+}
+Actor actorFromJson(const json& j) {
+    return {parseKey(j, "kind", "actor kind", kActorKinds), j.value("name", std::string{})};
+}
+
+// Keys holding provenance rather than the feature's definition.
+constexpr const char* kCreatedBy = "created_by";
+constexpr const char* kModifiedBy = "modified_by";
+
 json featureToJson(const Feature& f) {
     json j{{"id", f.id}, {"type", featureTypeName(f.type())}, {"name", f.name}};
     if (f.suppressed) j["suppressed"] = true;
+    j[kCreatedBy] = actorToJson(f.createdBy);
+    j[kModifiedBy] = actorToJson(f.modifiedBy);
 
     if (const auto* s = featureCast<SketchFeature>(&f)) {
-        j["plane"] = kPlanes.name(s->plane);
+        j["plane"] = kSketchPlanes.name(s->plane);
         j["offset"] = s->offset;
         j["sketch"] = sketchToJson(s->sketch);
     } else if (const auto* e = featureCast<ExtrudeFeature>(&f)) {
@@ -199,7 +196,7 @@ std::unique_ptr<Feature> featureFromJson(const json& j) {
     switch (type) {
     case FeatureType::Sketch: {
         auto s = std::make_unique<SketchFeature>();
-        s->plane = parseKey(j, "plane", "sketch plane", kPlanes);
+        s->plane = parseKey(j, "plane", "sketch plane", kSketchPlanes);
         s->offset = j.at("offset").get<std::string>();
         s->sketch = sketchFromJson(j.at("sketch"));
         f = std::move(s);
@@ -239,10 +236,49 @@ std::unique_ptr<Feature> featureFromJson(const json& j) {
     f->id = j.at("id").get<int>();
     f->name = j.at("name").get<std::string>();
     f->suppressed = j.value("suppressed", false);
+    f->createdBy = actorFromJson(j.at(kCreatedBy));
+    f->modifiedBy = actorFromJson(j.at(kModifiedBy));
     return f;
 }
 
+json definitionOf(const Feature& f) {
+    json j = featureToJson(f);
+    j.erase(kCreatedBy);
+    j.erase(kModifiedBy);
+    return j;
+}
+
 } // namespace
+
+std::string featureJson(const Feature& f) { return featureToJson(f).dump(); }
+
+Changes diff(const Document& before, const Document& after) {
+    Changes c;
+    std::map<int, json> old;
+    for (const auto& f : before.features()) old.emplace(f->id, definitionOf(*f));
+    for (const auto& f : after.features()) {
+        auto it = old.find(f->id);
+        if (it == old.end()) {
+            c.created.push_back(f->id);
+        } else {
+            if (it->second != definitionOf(*f)) c.modified.push_back(f->id);
+            old.erase(it);
+        }
+    }
+    for (const auto& [id, j] : old) c.removed.push_back(id);
+
+    auto sameParameter = [](const Parameter& a, const Parameter& b) {
+        return a.expression.source() == b.expression.source() && a.unit == b.unit && a.comment == b.comment;
+    };
+    for (const auto& p : after.parameters().all())
+        if (!before.parameters().contains(p.name) || !sameParameter(before.parameters().get(p.name), p))
+            c.parameters.push_back(p.name);
+    for (const auto& p : before.parameters().all())
+        if (!after.parameters().contains(p.name)) c.parameters.push_back(p.name);
+
+    c.marker = before.marker() != after.marker();
+    return c;
+}
 
 std::string Document::toJson() const {
     json params = json::array();

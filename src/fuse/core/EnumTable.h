@@ -36,6 +36,7 @@ public:
     }
 
     constexpr const Entry& operator[](Enum value) const { return entries_[static_cast<std::size_t>(value)]; }
+    constexpr const std::array<Entry, N>& entries() const { return entries_; }
     constexpr const char* name(Enum value) const { return (*this)[value].name; }
     constexpr std::optional<Enum> parse(std::string_view name) const {
         for (const Entry& e : entries_)
@@ -48,6 +49,9 @@ private:
 };
 
 // makeEnumTable<EnumName<Color>>({{Color::Red, "red"}, {Color::Green, "green"}})
+//
+// Enums that appear in files or command arguments publish their table through
+// an `enumTable(E)` function next to the enum, found by argument-dependent lookup.
 template <class Entry, std::size_t N>
 consteval EnumTable<Entry, N> makeEnumTable(const Entry (&entries)[N]) {
     std::array<Entry, N> a{};

@@ -24,12 +24,6 @@ constexpr std::array<std::pair<std::string_view, UnitInfo>, 9> kUnits{{
     {"rad", {UnitKind::Angle, 1.0}},
 }};
 
-constexpr auto kUnitKinds = makeEnumTable<EnumName<UnitKind>>({
-    {UnitKind::Length, "length"},
-    {UnitKind::Angle, "angle"},
-    {UnitKind::Unitless, "unitless"},
-});
-
 } // namespace
 
 std::optional<UnitInfo> lookupUnit(std::string_view name) {

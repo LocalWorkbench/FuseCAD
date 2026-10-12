@@ -31,9 +31,9 @@ enum class Dimension {
     Angle,
 };
 
+// Solver-side facts per constraint type; names live in kConstraintTypes.
 struct ConstraintInfo {
     ConstraintType value;
-    const char* name;
     Dimension dimension;
     // Accepted entity combinations. The second form is an alternative, unused
     // when its first slot is kEmpty (every constraint takes at least e1).
@@ -41,26 +41,24 @@ struct ConstraintInfo {
 };
 
 constexpr auto kConstraints = makeEnumTable<ConstraintInfo>({
-    {ConstraintType::Coincident, "coincident", Dimension::None, {{{kPoint, kPoint}}}},
-    {ConstraintType::Horizontal, "horizontal", Dimension::None, {{{kLine}, {kPoint, kPoint}}}},
-    {ConstraintType::Vertical, "vertical", Dimension::None, {{{kLine}, {kPoint, kPoint}}}},
-    {ConstraintType::Parallel, "parallel", Dimension::None, {{{kLine, kLine}}}},
-    {ConstraintType::Perpendicular, "perpendicular", Dimension::None, {{{kLine, kLine}}}},
-    {ConstraintType::Tangent, "tangent", Dimension::None, {{{kLine, kRound}, {kRound, kLine}}}},
-    {ConstraintType::Equal, "equal", Dimension::None, {{{kLine, kLine}, {kRound, kRound}}}},
-    {ConstraintType::Fix, "fix", Dimension::None, {{{kPoint}}}},
-    {ConstraintType::PointOnEntity, "point_on", Dimension::None, {{{kPoint, kLine | kRound}}}},
-    {ConstraintType::Midpoint, "midpoint", Dimension::None, {{{kPoint, kLine}}}},
-    {ConstraintType::Symmetric, "symmetric", Dimension::None, {{{kPoint, kPoint, kLine}}}},
-    {ConstraintType::Distance, "distance", Dimension::UnsignedLength, {{{kPoint, kPoint | kLine}}}},
-    {ConstraintType::HorizontalDistance, "horizontal_distance", Dimension::Length, {{{kPoint, kPoint}}}},
-    {ConstraintType::VerticalDistance, "vertical_distance", Dimension::Length, {{{kPoint, kPoint}}}},
-    {ConstraintType::Radius, "radius", Dimension::UnsignedLength, {{{kRound}}}},
-    {ConstraintType::Diameter, "diameter", Dimension::UnsignedLength, {{{kRound}}}},
-    {ConstraintType::Angle, "angle", Dimension::Angle, {{{kLine, kLine}}}},
+    {ConstraintType::Coincident, Dimension::None, {{{kPoint, kPoint}}}},
+    {ConstraintType::Horizontal, Dimension::None, {{{kLine}, {kPoint, kPoint}}}},
+    {ConstraintType::Vertical, Dimension::None, {{{kLine}, {kPoint, kPoint}}}},
+    {ConstraintType::Parallel, Dimension::None, {{{kLine, kLine}}}},
+    {ConstraintType::Perpendicular, Dimension::None, {{{kLine, kLine}}}},
+    {ConstraintType::Tangent, Dimension::None, {{{kLine, kRound}, {kRound, kLine}}}},
+    {ConstraintType::Equal, Dimension::None, {{{kLine, kLine}, {kRound, kRound}}}},
+    {ConstraintType::Fix, Dimension::None, {{{kPoint}}}},
+    {ConstraintType::PointOnEntity, Dimension::None, {{{kPoint, kLine | kRound}}}},
+    {ConstraintType::Midpoint, Dimension::None, {{{kPoint, kLine}}}},
+    {ConstraintType::Symmetric, Dimension::None, {{{kPoint, kPoint, kLine}}}},
+    {ConstraintType::Distance, Dimension::UnsignedLength, {{{kPoint, kPoint | kLine}}}},
+    {ConstraintType::HorizontalDistance, Dimension::Length, {{{kPoint, kPoint}}}},
+    {ConstraintType::VerticalDistance, Dimension::Length, {{{kPoint, kPoint}}}},
+    {ConstraintType::Radius, Dimension::UnsignedLength, {{{kRound}}}},
+    {ConstraintType::Diameter, Dimension::UnsignedLength, {{{kRound}}}},
+    {ConstraintType::Angle, Dimension::Angle, {{{kLine, kLine}}}},
 });
-
-bool isDimension(ConstraintType t) { return kConstraints[t].dimension != Dimension::None; }
 
 std::string describeKinds(unsigned mask) {
     std::string out;
@@ -80,6 +78,7 @@ std::string describeForm(const Form& form) {
 // Throws unless c's entity references match one of its type's forms.
 void checkConstraint(const std::vector<Entity>& entities, const Constraint& c) {
     const ConstraintInfo& info = kConstraints[c.type];
+    const char* name = kConstraintTypes.name(c.type);
     const std::array<EntityId, 3> ids{c.e1, c.e2, c.e3};
     auto matches = [&](const Form& form) {
         for (size_t i = 0; i < ids.size(); ++i) {
@@ -94,10 +93,10 @@ void checkConstraint(const std::vector<Entity>& entities, const Constraint& c) {
     };
     const bool hasAlternative = info.forms[1][0] != kEmpty;
     if (!matches(info.forms[0]) && !(hasAlternative && matches(info.forms[1])))
-        throw Error(std::string("constraint '") + info.name + "' takes " + describeForm(info.forms[0]) +
+        throw Error(std::string("constraint '") + name + "' takes " + describeForm(info.forms[0]) +
                     (hasAlternative ? " or " + describeForm(info.forms[1]) : std::string()));
     if (!c.expression.empty() && !isDimension(c.type))
-        throw Error(std::string("constraint '") + info.name + "' is not a dimension and cannot have an expression");
+        throw Error(std::string("constraint '") + name + "' is not a dimension and cannot have an expression");
 }
 
 // Value of a dimension's driving expression, in base units.
@@ -116,9 +115,11 @@ constexpr double kMinLength = 1e-12;
 
 } // namespace
 
-const char* constraintTypeName(ConstraintType t) { return kConstraints.name(t); }
+const char* constraintTypeName(ConstraintType t) { return kConstraintTypes.name(t); }
 
-std::optional<ConstraintType> parseConstraintType(std::string_view name) { return kConstraints.parse(name); }
+std::optional<ConstraintType> parseConstraintType(std::string_view name) { return kConstraintTypes.parse(name); }
+
+bool isDimension(ConstraintType t) { return kConstraints[t].dimension != Dimension::None; }
 
 Sketch::Sketch() {
     // Entity 0: the locked sketch origin.
@@ -248,6 +249,18 @@ ConstraintId Sketch::addDimension(ConstraintType type, EntityId e1, EntityId e2,
     // Constant expressions can be resolved now; parameter references wait for solve().
     if (Expression::parse(c.expression).references().empty()) c.value = evaluateDimension(type, c.expression, nullptr);
     return addConstraint(std::move(c));
+}
+
+void Sketch::setDimension(ConstraintId id, std::string expression) {
+    if (id < 0 || static_cast<size_t>(id) >= constraints_.size())
+        throw Error("sketch constraint " + std::to_string(id) + " does not exist");
+    Constraint& c = constraints_[id];
+    if (!isDimension(c.type)) throw Error(std::string(constraintTypeName(c.type)) + " is not a dimension");
+    // Same rule as addDimension: resolve constants now, parameter references at solve().
+    const double value =
+        Expression::parse(expression).references().empty() ? evaluateDimension(c.type, expression, nullptr) : c.value;
+    c.expression = std::move(expression);
+    c.value = value;
 }
 
 ConstraintId Sketch::fixPoint(EntityId id) {

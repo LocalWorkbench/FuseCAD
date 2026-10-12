@@ -1,5 +1,5 @@
 add_executable(fusecad-cli main.cpp)
-target_link_libraries(fusecad-cli PRIVATE fuse::model fuse::occt fuse::project_options)
+target_link_libraries(fusecad-cli PRIVATE fuse::command fuse::occt fuse::project_options)
 
 if(FUSE_BUILD_TESTS)
     add_test(NAME cli_smoke

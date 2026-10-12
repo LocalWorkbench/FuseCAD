@@ -13,6 +13,13 @@ namespace fuse {
 
 enum class SketchPlane { XY, XZ, YZ };
 
+inline constexpr auto kSketchPlanes = makeEnumTable<EnumName<SketchPlane>>({
+    {SketchPlane::XY, "XY"},
+    {SketchPlane::XZ, "XZ"},
+    {SketchPlane::YZ, "YZ"},
+});
+constexpr const auto& enumTable(SketchPlane) { return kSketchPlanes; }
+
 class SketchFeature final : public FeatureBase<SketchFeature, FeatureType::Sketch> {
 public:
     SketchPlane plane = SketchPlane::XY;
@@ -30,6 +37,14 @@ public:
 
 // How a new tool body combines with existing geometry.
 enum class FeatureOperation { NewBody, Join, Cut, Intersect };
+
+inline constexpr auto kFeatureOperations = makeEnumTable<EnumName<FeatureOperation>>({
+    {FeatureOperation::NewBody, "new_body"},
+    {FeatureOperation::Join, "join"},
+    {FeatureOperation::Cut, "cut"},
+    {FeatureOperation::Intersect, "intersect"},
+});
+constexpr const auto& enumTable(FeatureOperation) { return kFeatureOperations; }
 
 const char* operationName(FeatureOperation op);
 std::optional<FeatureOperation> parseOperation(std::string_view name);

@@ -23,7 +23,8 @@ describes the engine underneath it.
 | `fuse::kernel` | Abstract `Kernel` interface plus kernel-neutral data (`Mesh`, `EdgeQuery`) | `sketch` (header-only) |
 | `fuse::model` | Features, recompute, `Document`, undo, `.fcad` serialisation, modelling commands | `kernel`; nlohmann-json (private) |
 | `fuse::occt` | `Kernel` implemented with OpenCASCADE | `kernel`; OCCT (private) |
-| `apps/fusecad-cli` | Headless command-line front end | `model`, `occt` |
+| `fuse::command` | Typed commands (one per user action), their JSON Schemas, and `Session`: the single path for every edit | `model`; nlohmann-json (public: JSON is its interface) |
+| `apps/fusecad-cli` | Command-line front end over `Session` | `command`, `occt` |
 
 Rules that keep this healthy:
 
@@ -71,7 +72,30 @@ every recompute. This sidesteps the *topological naming problem* for now. A
 proper persistent-naming scheme is the most important open design problem;
 see the roadmap.
 
-### 6. Kernel results are checked at the boundary
+### 6. Every edit is a command run through one session
+A command is a struct of arguments with a `fields` list, an `info` block (id,
+title, description) and a `run` member; the type of `run`'s parameter makes it
+an edit, a query or a session command (files, undo). From the field list the
+`Codec` derives JSON parsing, argument errors that name the field, and the JSON
+Schema that agents are given, so the description can never drift from the code.
+Ids and argument names are `snake_case`, valid as tool names in every agent API.
+
+`cmd::Session` owns the document, undo history and a journal. Callers name a
+command and pass JSON; the interface's typed `Session::run<C>()` serialises
+through the same path. An edit runs on a copy of the document, is diffed
+against the original *before* recompute (recompute rewrites sketch solver
+state, which is not a user change), then recomputed. It is refused, changing
+nothing, if it throws, creates a failing feature, or breaks a feature that was
+working; a parameter change that breaks dependents is allowed and reported as
+issues. Created and modified features are stamped with the acting person,
+script or agent, which the `.fcad` file keeps.
+
+Transactions preview one edit: `begin`, any number of `update`s re-applying
+it to the committed state (dragging a handle, an agent trying values), then
+`commit` as a single undo step or `cancel`. Queries see the preview; other
+edits wait.
+
+### 7. Kernel results are checked at the boundary
 Every `OcctKernel` call converts OpenCASCADE exceptions into `fuse::Error`, and
 every modelling operation (extrude, revolve, booleans, fillet, chamfer, STEP
 import) rejects results that hold no solid or fail the B-rep checker, with a

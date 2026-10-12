@@ -20,13 +20,16 @@ the new one can be designed around commands from the start.
 
 ## 0.2: Commands
 The single entry point that the interface and agents will share.
-- [ ] Every document edit is a typed command with a machine-readable schema
+- [x] Every document edit is a typed command with a machine-readable schema
       (name, arguments, units, result, errors)
-- [ ] One executor: validate, apply, record an undo step, report what changed
-- [ ] Commands carry their origin (person, script, agent) onto the timeline
-- [ ] Read-only queries as commands too: parameters, features, bodies, mass
-      properties, bounding box, measurements
-- [ ] The CLI rebuilt on top of the command layer
+- [x] One executor: validate, apply, record an undo step, report what changed
+- [x] Commands carry their origin (person, script, agent) onto the timeline
+- [x] Read-only queries as commands too: parameters, features, bodies, volume,
+      area, bounding box, sketch state
+- [x] The CLI rebuilt on top of the command layer
+- [x] Transactions for live previews, committed as one undo step
+- [ ] Centre of mass, inertia and point-to-point measurement queries
+- [ ] Deleting sketch entities and constraints (with stable ids)
 
 ## 0.3: Interface shell (Qt Quick)
 A viewport-first window with as little chrome as possible, polished from the
@@ -64,6 +67,10 @@ Exposes exactly the commands the interface already offers.
 - [ ] Element map from the kernel's modification history, so references to
       faces and edges survive upstream edits
 - [ ] Fillet and chamfer reference named edges, replacing `EdgeQuery`
+- [x] Kernel choice: stay on OpenCASCADE. An open-source NURBS kernel was
+      trialled (2026-10): strong fillets, but booleans that can return wrong
+      solids which pass validation, no STEP, and no thread safety. Worth
+      keeping in mind as a second backend for cross-checking geometry
 
 ## 0.6: Sketcher
 - [ ] Sketch on an origin plane or a planar face; camera aligns to it

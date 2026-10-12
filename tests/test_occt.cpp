@@ -3,6 +3,7 @@
 // Integration tests against the real OpenCASCADE kernel: volumes are checked
 // against closed-form values, so these catch genuine geometry regressions.
 
+#include "fuse/command/Session.h"
 #include "fuse/core/Error.h"
 #include "fuse/model/Builders.h"
 #include "fuse/model/Document.h"
@@ -291,4 +292,37 @@ TEST_CASE("pillow block sample builds one valid body and follows its parameters"
     Document copy = Document::fromJson(doc.toJson());
     REQUIRE(copy.recompute(*kernel).ok());
     CHECK(kernel->volume(onlyBody(copy).shape) == doctest::Approx(kernel->volume(onlyBody(doc).shape)));
+}
+
+TEST_CASE("a part built through commands matches its analytic volume") {
+    auto kernel = occt::createKernel();
+    cmd::Session s(*kernel);
+    const Actor agent{ActorKind::Agent, "claude"};
+    s.execute("parameter_add", {{"name", "w"}, {"expression", "80 mm"}}, agent);
+    const int plate =
+        s.execute("box_create", {{"width", "w"}, {"depth", "50 mm"}, {"height", "10 mm"}}, agent).output["feature"];
+    const int fillet =
+        s.execute("fillet_create", {{"radius", "6 mm"}, {"edges", {{"mode", "parallel_to"}, {"direction", {0, 0, 1}}}}},
+                  agent)
+            .output["feature"];
+    s.execute("cylinder_create", {{"diameter", "20 mm"}, {"height", "10 mm"}, {"operation", "cut"}}, agent);
+
+    auto volume = [&] { return kernel->volume(s.document().bodies().at(plate).shape); };
+    CHECK(volume() == doctest::Approx(plateVolume(80, 50, 10, 6, 20)).epsilon(1e-6));
+    s.execute("parameter_set", {{"name", "w"}, {"expression", "100 mm"}});
+    CHECK(volume() == doctest::Approx(plateVolume(100, 50, 10, 6, 20)).epsilon(1e-6));
+
+    // Previewing a larger fillet, then cancelling, leaves the part as it was.
+    s.begin("fillet_edit", {{"feature", fillet}, {"radius", "9 mm"}});
+    CHECK(volume() == doctest::Approx(plateVolume(100, 50, 10, 9, 20)).epsilon(1e-6));
+    s.cancel();
+    CHECK(volume() == doctest::Approx(plateVolume(100, 50, 10, 6, 20)).epsilon(1e-6));
+
+    // A fillet too large for the plate is refused rather than left broken.
+    CHECK_THROWS_AS(s.execute("fillet_edit", {{"feature", fillet}, {"radius", "30 mm"}}), Error);
+    CHECK(volume() == doctest::Approx(plateVolume(100, 50, 10, 6, 20)).epsilon(1e-6));
+
+    const auto step = tmpPath("commands-plate.step");
+    s.execute("document_export", {{"path", step.string()}});
+    CHECK(std::filesystem::file_size(step) > 0);
 }

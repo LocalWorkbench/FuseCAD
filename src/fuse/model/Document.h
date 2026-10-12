@@ -71,7 +71,7 @@ public:
     void save(const std::string& path) const;
     static Document load(const std::string& path);
 
-    static constexpr int kFormatVersion = 1;
+    static constexpr int kFormatVersion = 2;
 
 private:
     void insert(std::unique_ptr<Feature> f);
@@ -83,6 +83,24 @@ private:
     std::map<FeatureType, int> nameCounters_;
     std::map<int, Body> bodies_;
 };
+
+// What an edit changed between two states of a document. Feature changes
+// compare definitions only (what is saved, minus provenance); a parameter is
+// listed when it was added, removed or its expression, unit or comment changed.
+struct Changes {
+    std::vector<int> created, modified, removed; // feature ids
+    std::vector<std::string> parameters;         // parameter names
+    bool marker = false;                         // the timeline marker moved
+
+    bool empty() const {
+        return created.empty() && modified.empty() && removed.empty() && parameters.empty() && !marker;
+    }
+};
+
+Changes diff(const Document& before, const Document& after);
+
+// A feature as stored in the .fcad file, as compact JSON text.
+std::string featureJson(const Feature& f);
 
 // Snapshot-based undo. The feature tree is small (geometry is derived), so
 // storing serialised snapshots is simple and robust.

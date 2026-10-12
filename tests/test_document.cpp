@@ -375,7 +375,7 @@ TEST_CASE("documents are read strictly") {
         REQUIRE(pos != std::string::npos);
         return s.replace(pos, from.size(), to);
     };
-    CHECK_THROWS_AS(Document::fromJson(mutate("\"version\": 1", "\"version\": 0")), Error);
+    CHECK_THROWS_AS(Document::fromJson(mutate("\"version\": 2", "\"version\": 1")), Error);
     CHECK_THROWS_AS(Document::fromJson(mutate("\"fillet\": 1", "\"warp\": 1")), Error); // name_counters key
     CHECK_THROWS_AS(Document::fromJson(mutate("\"symmetric\": false,", "")), Error);
     CHECK_THROWS_AS(Document::fromJson(mutate("\"offset\": \"0\",", "")), Error);
@@ -383,4 +383,49 @@ TEST_CASE("documents are read strictly") {
     CHECK_THROWS_AS(Document::fromJson(mutate("\"marker\": 5", "\"marker\": 6")), Error);
     CHECK_THROWS_AS(Document::fromJson(mutate("\"next_id\": 6", "\"next_id\": 5")), Error);
     CHECK_THROWS_AS(Document::fromJson(mutate("\"type\": \"horizontal\"", "\"type\": \"radius\"")), Error);
+    CHECK_THROWS_AS(Document::fromJson(mutate("\"kind\": \"person\"", "\"kind\": \"robot\"")), Error);
+    CHECK_THROWS_AS(Document::fromJson(mutate("\"created_by\"", "\"made_by\"")), Error);
+}
+
+TEST_CASE("feature provenance round-trips") {
+    Document doc = samples::mountingPlate();
+    doc.features()[0]->createdBy = {ActorKind::Agent, "claude"};
+    doc.features()[0]->modifiedBy = {ActorKind::Person, ""};
+    doc.features()[1]->modifiedBy = {ActorKind::Script, "fusecad-cli"};
+
+    Document copy = Document::fromJson(doc.toJson());
+    CHECK(copy.features()[0]->createdBy == Actor{ActorKind::Agent, "claude"});
+    CHECK(copy.features()[0]->modifiedBy == Actor{});
+    CHECK(copy.features()[1]->createdBy == Actor{});
+    CHECK(copy.features()[1]->modifiedBy == Actor{ActorKind::Script, "fusecad-cli"});
+}
+
+TEST_CASE("diff reports what an edit changed") {
+    const Document before = samples::mountingPlate();
+    CHECK(diff(before, before).empty());
+
+    Document after = before;
+    after.parameters().setExpression("width", "100 mm");
+    after.parameters().add("depth", "3 mm");
+    auto* extrude = featureCast<ExtrudeFeature>(after.features()[1].get());
+    REQUIRE(extrude);
+    extrude->distance = "thickness * 2";
+    const int removed = after.features().back()->id;
+    after.removeFeature(removed);
+    auto& chamfer = after.add<ChamferFeature>();
+    chamfer.body = extrude->id;
+
+    // Provenance alone is not a change to the definition.
+    after.features()[0]->modifiedBy = {ActorKind::Agent, "claude"};
+
+    const Changes c = diff(before, after);
+    CHECK(c.created == std::vector<int>{chamfer.id});
+    CHECK(c.modified == std::vector<int>{extrude->id});
+    CHECK(c.removed == std::vector<int>{removed});
+    CHECK(c.parameters == std::vector<std::string>{"width", "depth"});
+    CHECK_FALSE(c.marker);
+
+    Document rolledBack = before;
+    rolledBack.setMarker(1);
+    CHECK(diff(before, rolledBack).marker);
 }

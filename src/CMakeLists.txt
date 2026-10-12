@@ -5,6 +5,7 @@
 #   kernel  abstract geometry-kernel interface        (sketch)
 #   model   features, timeline, document, file I/O    (kernel, nlohmann_json private)
 #   occt    OpenCASCADE implementation of Kernel      (kernel, OCCT private)
+#   command user actions as typed commands, sessions  (model, nlohmann_json public: JSON is its interface)
 
 fuse_add_library(core
     SOURCES
@@ -32,6 +33,17 @@ fuse_add_library(model
         fuse/model/Serialization.cpp
     PUBLIC_DEPS fuse::kernel
     PRIVATE_DEPS nlohmann_json::nlohmann_json)
+
+fuse_add_library(command
+    SOURCES
+        fuse/command/Builtins.cpp
+        fuse/command/DocumentCommands.cpp
+        fuse/command/FeatureCommands.cpp
+        fuse/command/ParameterCommands.cpp
+        fuse/command/Registry.cpp
+        fuse/command/Session.cpp
+        fuse/command/SketchCommands.cpp
+    PUBLIC_DEPS fuse::model nlohmann_json::nlohmann_json)
 
 if(FUSE_WITH_OCCT)
     # OCCT's imported targets carry their include directory as a system path,

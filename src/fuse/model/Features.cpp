@@ -25,13 +25,6 @@ constexpr auto kFeatureTypes = makeEnumTable<FeatureTypeInfo>({
     {FeatureType::ImportStep, "import_step", "Import"},
 });
 
-constexpr auto kOperations = makeEnumTable<EnumName<FeatureOperation>>({
-    {FeatureOperation::NewBody, "new_body"},
-    {FeatureOperation::Join, "join"},
-    {FeatureOperation::Cut, "cut"},
-    {FeatureOperation::Intersect, "intersect"},
-});
-
 const SketchFeature& requireSketch(const RecomputeContext& ctx, int id) {
     const auto* sk = featureCast<SketchFeature>(ctx.findFeature(id));
     if (!sk) throw Error("referenced sketch (feature " + std::to_string(id) + ") is missing or after this feature");
@@ -99,8 +92,8 @@ const char* featureTypeName(FeatureType t) { return kFeatureTypes.name(t); }
 const char* featureDisplayName(FeatureType t) { return kFeatureTypes[t].displayName; }
 std::optional<FeatureType> parseFeatureType(std::string_view name) { return kFeatureTypes.parse(name); }
 
-const char* operationName(FeatureOperation op) { return kOperations.name(op); }
-std::optional<FeatureOperation> parseOperation(std::string_view name) { return kOperations.parse(name); }
+const char* operationName(FeatureOperation op) { return kFeatureOperations.name(op); }
+std::optional<FeatureOperation> parseOperation(std::string_view name) { return kFeatureOperations.parse(name); }
 
 const Feature* RecomputeContext::findFeature(int id) const {
     auto it = std::find_if(executed.begin(), executed.end(), [id](const Feature* f) { return f->id == id; });

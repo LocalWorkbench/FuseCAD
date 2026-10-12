@@ -1,39 +1,40 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //
-// fusecad-cli: headless access to the FuseCAD modelling stack.
-//
-//   fusecad-cli new <file.fcad> [--sample plate|flange|pillow-block]
-//   fusecad-cli info <file.fcad> [-p name=expr]...
-//   fusecad-cli set <file.fcad> name=expr...
-//   fusecad-cli export <file.fcad> <out.step|out.stp|out.stl> [-p name=expr]...
+// fusecad-cli: the FuseCAD command layer from a terminal or a script. Every
+// change goes through a command session, exactly as in the app.
 //
 // Exit codes are listed in kUsage.
 
+#include "fuse/command/Session.h"
 #include "fuse/core/Error.h"
 #include "fuse/model/Document.h"
 #include "fuse/model/Samples.h"
 #include "fuse/occt/OcctKernel.h"
 
-#include <cctype>
 #include <cstdio>
-#include <filesystem>
 #include <iostream>
+#include <memory>
 #include <string>
 #include <string_view>
 #include <vector>
 
 namespace {
 
+using fuse::cmd::json;
+
 constexpr const char* kUsage = R"(usage:
-  fusecad-cli new <file.fcad> [--sample NAME]      create an empty or sample document
+  fusecad-cli new <file.fcad> [--sample NAME]      create an empty or sample document (plate, flange, pillow-block)
   fusecad-cli info <file.fcad> [-p name=expr]...   recompute and print parameters, features, bodies
   fusecad-cli set <file.fcad> name=expr...         change parameters and save
   fusecad-cli export <file.fcad> <out> [-p ...]    export bodies to STEP (.step/.stp) or STL (.stl)
+  fusecad-cli run <file.fcad> <command> [json] [--agent NAME]
+                                                   run one command; edits are saved; prints the JSON result
+  fusecad-cli commands [command]                   list commands, or print one command's JSON Schema
 
 exit codes:
   0  success
   1  usage error
-  2  modelling error: unreadable document, bad expression, failed feature
+  2  modelling error: unreadable document, bad arguments, refused or failing command
   3  internal error
 )";
 
@@ -43,31 +44,32 @@ struct UsageError : fuse::Error {
     using fuse::Error::Error;
 };
 
-void applyAssignment(fuse::Document& doc, std::string_view assignment) {
+fuse::Actor cliActor() { return {fuse::ActorKind::Script, "fusecad-cli"}; }
+
+// Owns the kernel a session refers to.
+struct Cli {
+    std::unique_ptr<fuse::Kernel> kernel = fuse::occt::createKernel();
+    fuse::cmd::Session session{*kernel};
+
+    explicit Cli(const std::string& path) { session.execute("document_open", {{"path", path}}, cliActor()); }
+    explicit Cli(fuse::Document doc) : session(*kernel, std::move(doc)) {}
+};
+
+void setParameter(fuse::cmd::Session& s, std::string_view assignment) {
     auto eq = assignment.find('=');
     if (eq == std::string_view::npos || eq == 0)
         throw UsageError("expected name=expression, got '" + std::string(assignment) + "'");
-    doc.parameters().setExpression(assignment.substr(0, eq), assignment.substr(eq + 1));
+    s.execute("parameter_set",
+              {{"name", std::string(assignment.substr(0, eq))}, {"expression", std::string(assignment.substr(eq + 1))}},
+              cliActor());
 }
 
-// Consumes "-p name=expr" pairs from args[from..].
-void applyOverrides(fuse::Document& doc, const std::vector<std::string>& args, size_t from) {
+// Applies "-p name=expr" pairs from args[from..].
+void applyOverrides(fuse::cmd::Session& s, const std::vector<std::string>& args, size_t from) {
     for (size_t i = from; i < args.size(); ++i) {
         if (args[i] != "-p" || i + 1 >= args.size()) throw UsageError("unexpected argument '" + args[i] + "'");
-        applyAssignment(doc, args[++i]);
+        setParameter(s, args[++i]);
     }
-}
-
-fuse::RecomputeReport recomputeOrWarn(fuse::Document& doc, fuse::Kernel& kernel) {
-    fuse::RecomputeReport r = doc.recompute(kernel);
-    for (const auto& m : r.messages) std::cerr << "warning: " << m << "\n";
-    return r;
-}
-
-std::vector<fuse::ShapePtr> allShapes(const fuse::Document& doc) {
-    std::vector<fuse::ShapePtr> shapes;
-    for (const auto& [id, body] : doc.bodies()) shapes.push_back(body.shape);
-    return shapes;
 }
 
 int cmdNew(const std::vector<std::string>& args) {
@@ -75,7 +77,7 @@ int cmdNew(const std::vector<std::string>& args) {
     const bool withSample = args.size() == 3 && args[1] == "--sample";
     if (!plain && !withSample) throw UsageError("new takes <file.fcad> [--sample plate|flange|pillow-block]");
     fuse::Document doc;
-    if (args.size() == 3) {
+    if (withSample) {
         if (args[2] == "plate")
             doc = fuse::samples::mountingPlate();
         else if (args[2] == "flange")
@@ -85,72 +87,106 @@ int cmdNew(const std::vector<std::string>& args) {
         else
             throw UsageError("unknown sample '" + args[2] + "' (available: plate, flange, pillow-block)");
     }
-    doc.save(args[0]);
+    Cli cli(std::move(doc));
+    cli.session.execute("document_save", {{"path", args[0]}}, cliActor());
     std::cout << "wrote " << args[0] << "\n";
     return kExitOk;
 }
 
 int cmdInfo(const std::vector<std::string>& args) {
     if (args.empty()) throw UsageError("info takes <file.fcad>");
-    fuse::Document doc = fuse::Document::load(args[0]);
-    applyOverrides(doc, args, 1);
-    auto kernel = fuse::occt::createKernel();
-    fuse::RecomputeReport report = recomputeOrWarn(doc, *kernel);
+    Cli cli(args[0]);
+    applyOverrides(cli.session, args, 1);
+    const json doc = cli.session.execute("document_describe").output;
 
-    std::cout << "Kernel: " << kernel->name() << "\n\nParameters\n";
-    for (const auto& p : doc.parameters().all())
-        std::printf("  %-14s = %-20s -> %s\n", p.name.c_str(), p.expression.source().c_str(),
-                    fuse::formatValue(p.value, p.unit).c_str());
+    std::cout << "Kernel: " << cli.kernel->name() << "\n\nParameters\n";
+    for (const auto& p : doc["parameters"])
+        std::printf("  %-14s = %-20s -> %s\n", p["name"].get<std::string>().c_str(),
+                    p["expression"].get<std::string>().c_str(), p["display"].get<std::string>().c_str());
 
     std::cout << "\nTimeline\n";
-    for (size_t i = 0; i < doc.features().size(); ++i) {
-        const auto& f = *doc.features()[i];
-        const char* state = i >= doc.marker() ? "rolled back"
-                            : f.suppressed    ? "suppressed"
-                            : f.healthy()     ? "ok"
-                                              : "ERROR";
-        std::printf("  %2zu. %-12s %-12s %s%s%s\n", i + 1, f.name.c_str(), fuse::featureTypeName(f.type()), state,
-                    f.healthy() ? "" : ": ", f.error.c_str());
+    bool failed = false;
+    int n = 0;
+    for (const auto& f : doc["features"]) {
+        const std::string error = f.value("error", "");
+        failed = failed || !error.empty();
+        const char* state = f["rolled_back"].get<bool>()  ? "rolled back"
+                            : f["suppressed"].get<bool>() ? "suppressed"
+                            : error.empty()               ? "ok"
+                                                          : "ERROR";
+        std::printf("  %2d. %-12s %-12s %s%s%s\n", ++n, f["name"].get<std::string>().c_str(),
+                    f["type"].get<std::string>().c_str(), state, error.empty() ? "" : ": ", error.c_str());
     }
 
     std::cout << "\nBodies\n";
-    for (const auto& [id, body] : doc.bodies()) {
-        fuse::BoundingBox bb = kernel->boundingBox(body.shape);
+    for (const auto& b : doc["bodies"]) {
+        const auto& lo = b["bounding_box"]["min"];
+        const auto& hi = b["bounding_box"]["max"];
+        auto size = [&](int i) { return hi[i].get<double>() - lo[i].get<double>(); };
         std::printf("  %-8s volume %.4f mm^3, area %.4f mm^2, %d faces, size %.3f x %.3f x %.3f mm%s\n",
-                    body.name.c_str(), kernel->volume(body.shape), kernel->surfaceArea(body.shape),
-                    kernel->countFaces(body.shape), bb.max.x - bb.min.x, bb.max.y - bb.min.y, bb.max.z - bb.min.z,
-                    kernel->isValid(body.shape) ? "" : "  [INVALID]");
+                    b["name"].get<std::string>().c_str(), b["volume"].get<double>(), b["area"].get<double>(),
+                    b["faces"].get<int>(), size(0), size(1), size(2), b["valid"].get<bool>() ? "" : "  [INVALID]");
     }
-    return report.ok() ? kExitOk : kExitModel;
+    return failed ? kExitModel : kExitOk;
 }
 
 int cmdSet(const std::vector<std::string>& args) {
     if (args.size() < 2) throw UsageError("set takes <file.fcad> name=expr...");
-    fuse::Document doc = fuse::Document::load(args[0]);
-    for (size_t i = 1; i < args.size(); ++i) applyAssignment(doc, args[i]);
-    doc.save(args[0]);
+    Cli cli(args[0]);
+    for (size_t i = 1; i < args.size(); ++i) setParameter(cli.session, args[i]);
+    cli.session.execute("document_save", json::object(), cliActor());
     return kExitOk;
 }
 
 int cmdExport(const std::vector<std::string>& args) {
     if (args.size() < 2) throw UsageError("export takes <file.fcad> <out>");
-    fuse::Document doc = fuse::Document::load(args[0]);
-    applyOverrides(doc, args, 2);
-    auto kernel = fuse::occt::createKernel();
-    if (!recomputeOrWarn(doc, *kernel).ok()) throw fuse::Error("document has errors; not exporting");
-    auto shapes = allShapes(doc);
-    if (shapes.empty()) throw fuse::Error("document has no bodies to export");
+    Cli cli(args[0]);
+    applyOverrides(cli.session, args, 2);
+    cli.session.execute("document_export", {{"path", args[1]}}, cliActor());
+    std::cout << "wrote " << args[1] << "\n";
+    return kExitOk;
+}
 
-    const std::string& out = args[1];
-    std::string ext = std::filesystem::path(out).extension().string();
-    for (auto& c : ext) c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
-    if (ext == ".step" || ext == ".stp")
-        kernel->exportStep(shapes, out);
-    else if (ext == ".stl")
-        kernel->exportStl(shapes, out, fuse::kDefaultStlDeflection);
-    else
-        throw UsageError("unsupported export format '" + ext + "'");
-    std::cout << "wrote " << out << "\n";
+int cmdRun(const std::vector<std::string>& args) {
+    std::vector<std::string> positional;
+    fuse::Actor actor = cliActor();
+    for (size_t i = 0; i < args.size(); ++i) {
+        if (args[i] == "--agent") {
+            if (i + 1 >= args.size()) throw UsageError("--agent takes a name");
+            actor = {fuse::ActorKind::Agent, args[++i]};
+        } else {
+            positional.push_back(args[i]);
+        }
+    }
+    if (positional.size() < 2 || positional.size() > 3)
+        throw UsageError("run takes <file.fcad> <command> [json arguments]");
+    json arguments = json::object();
+    if (positional.size() == 3) {
+        try {
+            arguments = json::parse(positional[2]);
+        } catch (const json::exception& e) {
+            throw UsageError(std::string("arguments are not valid JSON: ") + e.what());
+        }
+    }
+
+    Cli cli(positional[0]);
+    const auto& entry = cli.session.registry().get(positional[1]);
+    json result = cli.session.call(positional[1], arguments, actor);
+    if (result["ok"] == true && entry.kind == fuse::cmd::CommandKind::Edit)
+        cli.session.execute("document_save", json::object(), cliActor());
+    std::cout << result.dump(2) << "\n";
+    return result["ok"] == true ? kExitOk : kExitModel;
+}
+
+int cmdCommands(const std::vector<std::string>& args) {
+    const auto& registry = fuse::cmd::Registry::builtin();
+    if (args.size() > 1) throw UsageError("commands takes at most one command name");
+    if (args.size() == 1) {
+        std::cout << fuse::cmd::Registry::describe(registry.get(args[0])).dump(2) << "\n";
+        return kExitOk;
+    }
+    for (const auto& e : registry.all())
+        std::printf("  %-24s %-8s %s\n", e.info.id, fuse::cmd::commandKindName(e.kind), e.info.title);
     return kExitOk;
 }
 
@@ -165,6 +201,8 @@ int run(std::vector<std::string> args) {
     if (cmd == "info") return cmdInfo(args);
     if (cmd == "set") return cmdSet(args);
     if (cmd == "export") return cmdExport(args);
+    if (cmd == "run") return cmdRun(args);
+    if (cmd == "commands") return cmdCommands(args);
     throw UsageError("unknown command '" + cmd + "'");
 }
 

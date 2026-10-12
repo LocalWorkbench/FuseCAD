@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 #pragma once
 
+#include "fuse/core/EnumTable.h"
 #include "fuse/core/Math.h"
 #include "fuse/sketch/Profile.h"
 
@@ -20,6 +21,14 @@ using EntityId = int;
 using ConstraintId = int;
 
 enum class EntityType { Point, Line, Circle, Arc };
+
+inline constexpr auto kEntityTypes = makeEnumTable<EnumName<EntityType>>({
+    {EntityType::Point, "point"},
+    {EntityType::Line, "line"},
+    {EntityType::Circle, "circle"},
+    {EntityType::Arc, "arc"},
+});
+constexpr const auto& enumTable(EntityType) { return kEntityTypes; }
 
 // Geometry is stored parametrically: every point owns two solver variables,
 // every circle owns a radius variable. Lines and arcs reference point entities,
@@ -53,8 +62,31 @@ enum class ConstraintType {
     Angle,              // line, line                   [dimension, radians]
 };
 
+inline constexpr auto kConstraintTypes = makeEnumTable<EnumName<ConstraintType>>({
+    {ConstraintType::Coincident, "coincident"},
+    {ConstraintType::Horizontal, "horizontal"},
+    {ConstraintType::Vertical, "vertical"},
+    {ConstraintType::Parallel, "parallel"},
+    {ConstraintType::Perpendicular, "perpendicular"},
+    {ConstraintType::Tangent, "tangent"},
+    {ConstraintType::Equal, "equal"},
+    {ConstraintType::Fix, "fix"},
+    {ConstraintType::PointOnEntity, "point_on"},
+    {ConstraintType::Midpoint, "midpoint"},
+    {ConstraintType::Symmetric, "symmetric"},
+    {ConstraintType::Distance, "distance"},
+    {ConstraintType::HorizontalDistance, "horizontal_distance"},
+    {ConstraintType::VerticalDistance, "vertical_distance"},
+    {ConstraintType::Radius, "radius"},
+    {ConstraintType::Diameter, "diameter"},
+    {ConstraintType::Angle, "angle"},
+});
+constexpr const auto& enumTable(ConstraintType) { return kConstraintTypes; }
+
 const char* constraintTypeName(ConstraintType t);
 std::optional<ConstraintType> parseConstraintType(std::string_view name);
+// Dimensions carry a value (and optionally a driving expression); the rest are geometric.
+bool isDimension(ConstraintType t);
 
 struct Constraint {
     ConstraintType type = ConstraintType::Coincident;
@@ -72,6 +104,13 @@ enum class SolveStatus {
     Redundant, // satisfied, but some constraints duplicate others
     Failed,    // could not satisfy constraints (over-constrained or conflicting)
 };
+
+inline constexpr auto kSolveStatuses = makeEnumTable<EnumName<SolveStatus>>({
+    {SolveStatus::Solved, "solved"},
+    {SolveStatus::Redundant, "redundant"},
+    {SolveStatus::Failed, "failed"},
+});
+constexpr const auto& enumTable(SolveStatus) { return kSolveStatuses; }
 
 struct SolveResult {
     SolveStatus status = SolveStatus::Solved;
@@ -110,6 +149,9 @@ public:
     ConstraintId addConstraint(Constraint c);
     ConstraintId addDimension(ConstraintType type, EntityId e1, EntityId e2, std::string expression);
     ConstraintId fixPoint(EntityId point); // lock at its current position
+    // Replaces a dimension's driving expression. Throws, leaving the sketch
+    // unchanged, unless `id` is a dimension and a constant expression is in range.
+    void setDimension(ConstraintId id, std::string expression);
     void setConstruction(EntityId id, bool construction);
 
     const std::vector<Entity>& entities() const { return entities_; }

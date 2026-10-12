@@ -20,10 +20,16 @@ fuse_add_test(model_tests
     SOURCES test_document.cpp
     DEPS fuse::model)
 
+fuse_add_test(command_tests
+    SOURCES test_commands.cpp
+    DEPS fuse::command)
+set_tests_properties(command_tests PROPERTIES
+    ENVIRONMENT "FUSE_TEST_TMPDIR=${CMAKE_CURRENT_BINARY_DIR}")
+
 if(FUSE_WITH_OCCT)
     fuse_add_test(occt_tests
         SOURCES test_occt.cpp
-        DEPS fuse::model fuse::occt)
+        DEPS fuse::command fuse::occt)
     set_tests_properties(occt_tests PROPERTIES
         ENVIRONMENT "FUSE_TEST_TMPDIR=${CMAKE_CURRENT_BINARY_DIR}")
 endif()

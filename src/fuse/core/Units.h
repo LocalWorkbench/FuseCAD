@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 #pragma once
 
+#include "fuse/core/EnumTable.h"
+
 #include <optional>
 #include <string>
 #include <string_view>
@@ -22,6 +24,13 @@ struct UnitInfo {
 };
 
 std::optional<UnitInfo> lookupUnit(std::string_view name);
+
+inline constexpr auto kUnitKinds = makeEnumTable<EnumName<UnitKind>>({
+    {UnitKind::Length, "length"},
+    {UnitKind::Angle, "angle"},
+    {UnitKind::Unitless, "unitless"},
+});
+constexpr const auto& enumTable(UnitKind) { return kUnitKinds; }
 
 const char* unitKindName(UnitKind kind); // "length", "angle", "unitless"
 std::optional<UnitKind> parseUnitKind(std::string_view name);

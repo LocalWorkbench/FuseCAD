@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 #pragma once
 
+#include "fuse/core/EnumTable.h"
 #include "fuse/kernel/Kernel.h"
 
 #include <functional>
@@ -27,6 +28,23 @@ struct Body {
     int id = 0;
     std::string name;
     ShapePtr shape;
+};
+
+// Who made an edit: the person using the app, a script, or an agent.
+enum class ActorKind { Person, Script, Agent };
+
+inline constexpr auto kActorKinds = makeEnumTable<EnumName<ActorKind>>({
+    {ActorKind::Person, "person"},
+    {ActorKind::Script, "script"},
+    {ActorKind::Agent, "agent"},
+});
+constexpr const auto& enumTable(ActorKind) { return kActorKinds; }
+
+struct Actor {
+    ActorKind kind = ActorKind::Person;
+    std::string name; // the agent or script, e.g. "claude"; empty for the person
+
+    bool operator==(const Actor&) const = default;
 };
 
 class Feature;
@@ -66,6 +84,8 @@ public:
     int id = 0;
     std::string name;
     bool suppressed = false;
+    Actor createdBy;  // who added the feature
+    Actor modifiedBy; // who last changed its definition
 
     // Result of the last recompute.
     std::string error;
