@@ -5,8 +5,8 @@
 // records the operation that produced it plus a nominal "volume", so tests can
 // check that the timeline drives the kernel correctly without OCCT.
 
-#include "fuse/core/Error.h"
-#include "fuse/kernel/Kernel.h"
+#include "age/core/Error.h"
+#include "age/kernel/Kernel.h"
 
 #include <algorithm>
 #include <cmath>
@@ -14,7 +14,7 @@
 #include <utility>
 #include <vector>
 
-namespace fuse::testing {
+namespace age::testing {
 
 class FakeShape final : public Shape {
 public:
@@ -69,4 +69,4 @@ private:
     static double vol(const ShapePtr& s) { return dynamic_cast<const FakeShape&>(*s).volume; }
 };
 
-} // namespace fuse::testing
+} // namespace age::testing

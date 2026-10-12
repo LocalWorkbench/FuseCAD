@@ -1,9 +1,9 @@
 cmake_minimum_required(VERSION 3.25)
 
-project(FuseCAD
+project(AgeCAD
     VERSION 0.1.0
     DESCRIPTION "Open-source parametric CAD"
-    HOMEPAGE_URL "https://github.com/OpenDeskOrg/fusecad"
+    HOMEPAGE_URL "https://github.com/jub0t/FuseCAD"
     LANGUAGES CXX)
 
 if(PROJECT_SOURCE_DIR STREQUAL PROJECT_BINARY_DIR)
@@ -21,7 +21,7 @@ include(ProjectOptions)
 # --- Dependencies -------------------------------------------------------------
 find_package(nlohmann_json 3.11 CONFIG REQUIRED)
 
-if(FUSE_WITH_OCCT)
+if(AGE_WITH_OCCT)
     # No version argument: OCCT's config file only accepts an exact patch match.
     find_package(OpenCASCADE CONFIG REQUIRED)
     if(OpenCASCADE_VERSION VERSION_LESS 7.8)
@@ -31,22 +31,22 @@ if(FUSE_WITH_OCCT)
 endif()
 
 # --- Targets ------------------------------------------------------------------
-if(FUSE_BUILD_TESTS)
+if(AGE_BUILD_TESTS)
     enable_testing() # before apps/, which registers the CLI smoke test
 endif()
 
 add_subdirectory(src)
 add_subdirectory(apps)
 
-if(FUSE_BUILD_TESTS)
+if(AGE_BUILD_TESTS)
     add_subdirectory(tests)
 endif()
 
 # --- Summary ------------------------------------------------------------------
 message(STATUS "")
-message(STATUS "FuseCAD ${PROJECT_VERSION}")
-message(STATUS "  OpenCASCADE kernel : ${FUSE_WITH_OCCT}")
-message(STATUS "  Tests              : ${FUSE_BUILD_TESTS}")
-message(STATUS "  Sanitizers         : ${FUSE_SANITIZERS}")
-message(STATUS "  Warnings as errors : ${FUSE_WARNINGS_AS_ERRORS}")
+message(STATUS "AgeCAD ${PROJECT_VERSION}")
+message(STATUS "  OpenCASCADE kernel : ${AGE_WITH_OCCT}")
+message(STATUS "  Tests              : ${AGE_BUILD_TESTS}")
+message(STATUS "  Sanitizers         : ${AGE_SANITIZERS}")
+message(STATUS "  Warnings as errors : ${AGE_WARNINGS_AS_ERRORS}")
 message(STATUS "")

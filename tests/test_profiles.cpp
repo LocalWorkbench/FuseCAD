@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-#include "fuse/sketch/Sketch.h"
+#include "age/sketch/Sketch.h"
 
 #include <doctest/doctest.h>
 
 #include <algorithm>
 
-using namespace fuse;
-using namespace fuse::sketch;
+using namespace age;
+using namespace age::sketch;
 
 namespace {
 

@@ -1,4 +1,4 @@
-# Contributing to FuseCAD
+# Contributing to AgeCAD
 
 Thanks for helping! This page covers how to get a working build and what we
 expect from a change.
@@ -32,7 +32,7 @@ check the [roadmap](docs/ROADMAP.md) for what is planned.
   `-extra-arg=-isysroot$(xcrun --show-sdk-path)`.
 - **Layering.** Dependencies point downwards only (see the architecture doc).
   Never include OpenCASCADE headers from `core`, `sketch` or `model`.
-- **Errors.** User-facing failures throw `fuse::Error` with a message a CAD user
+- **Errors.** User-facing failures throw `age::Error` with a message a CAD user
   can act on ("fillet radius is too large for the selected edges").
 
 ## Conventions

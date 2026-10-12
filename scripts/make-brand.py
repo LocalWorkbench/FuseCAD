@@ -41,7 +41,7 @@ def text_path(fontfile, text, x, baseline, size, fill):
         cx += pos.x_advance
     return f'<path fill="{fill}" d="{pen.getCommands()}"/>', x + cx*s
 
-def svg(w, h, body, title="FuseCAD"):
+def svg(w, h, body, title="AgeCAD"):
     return f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {w} {h}" width="{w}" height="{h}"><title>{title}</title>{body}</svg>\n'
 
 bold, reg = f"{FONTS}/InterDisplay-Bold.ttf", f"{FONTS}/InterDisplay-Regular.ttf"

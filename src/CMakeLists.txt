@@ -7,50 +7,50 @@
 #   occt    OpenCASCADE implementation of Kernel      (kernel, OCCT private)
 #   command user actions as typed commands, sessions  (model, nlohmann_json public: JSON is its interface)
 
-fuse_add_library(core
+age_add_library(core
     SOURCES
-        fuse/core/Expression.cpp
-        fuse/core/Parameters.cpp
-        fuse/core/Units.cpp)
+        age/core/Expression.cpp
+        age/core/Parameters.cpp
+        age/core/Units.cpp)
 
-fuse_add_library(sketch
+age_add_library(sketch
     SOURCES
-        fuse/sketch/Profile.cpp
-        fuse/sketch/Sketch.cpp
-        fuse/sketch/Solver.cpp
-    PUBLIC_DEPS fuse::core)
+        age/sketch/Profile.cpp
+        age/sketch/Sketch.cpp
+        age/sketch/Solver.cpp
+    PUBLIC_DEPS age::core)
 
-add_library(fuse_kernel INTERFACE)
-add_library(fuse::kernel ALIAS fuse_kernel)
-target_link_libraries(fuse_kernel INTERFACE fuse::sketch)
+add_library(age_kernel INTERFACE)
+add_library(age::kernel ALIAS age_kernel)
+target_link_libraries(age_kernel INTERFACE age::sketch)
 
-fuse_add_library(model
+age_add_library(model
     SOURCES
-        fuse/model/Builders.cpp
-        fuse/model/Document.cpp
-        fuse/model/Features.cpp
-        fuse/model/Samples.cpp
-        fuse/model/Serialization.cpp
-    PUBLIC_DEPS fuse::kernel
+        age/model/Builders.cpp
+        age/model/Document.cpp
+        age/model/Features.cpp
+        age/model/Samples.cpp
+        age/model/Serialization.cpp
+    PUBLIC_DEPS age::kernel
     PRIVATE_DEPS nlohmann_json::nlohmann_json)
 
-fuse_add_library(command
+age_add_library(command
     SOURCES
-        fuse/command/Builtins.cpp
-        fuse/command/DocumentCommands.cpp
-        fuse/command/FeatureCommands.cpp
-        fuse/command/ParameterCommands.cpp
-        fuse/command/Registry.cpp
-        fuse/command/Session.cpp
-        fuse/command/SketchCommands.cpp
-    PUBLIC_DEPS fuse::model nlohmann_json::nlohmann_json)
+        age/command/Builtins.cpp
+        age/command/DocumentCommands.cpp
+        age/command/FeatureCommands.cpp
+        age/command/ParameterCommands.cpp
+        age/command/Registry.cpp
+        age/command/Session.cpp
+        age/command/SketchCommands.cpp
+    PUBLIC_DEPS age::model nlohmann_json::nlohmann_json)
 
-if(FUSE_WITH_OCCT)
+if(AGE_WITH_OCCT)
     # OCCT's imported targets carry their include directory as a system path,
     # so its headers are exempt from our warning flags.
-    fuse_add_library(occt
-        SOURCES fuse/occt/OcctKernel.cpp
-        PUBLIC_DEPS fuse::kernel
+    age_add_library(occt
+        SOURCES age/occt/OcctKernel.cpp
+        PUBLIC_DEPS age::kernel
         PRIVATE_DEPS
             TKernel TKMath TKG3d TKGeomBase TKBRep TKTopAlgo TKPrim TKBO TKFillet TKMesh TKShHealing
             TKXSBase TKDESTEP TKDESTL)

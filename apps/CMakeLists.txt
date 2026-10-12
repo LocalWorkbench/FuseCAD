@@ -1,3 +1,3 @@
-if(FUSE_WITH_OCCT)
-    add_subdirectory(fusecad-cli)
+if(AGE_WITH_OCCT)
+    add_subdirectory(agecad-cli)
 endif()

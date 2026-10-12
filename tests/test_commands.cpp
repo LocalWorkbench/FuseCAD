@@ -1,18 +1,18 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 #include "FakeKernel.h"
-#include "fuse/command/FeatureCommands.h"
-#include "fuse/command/Session.h"
-#include "fuse/command/SketchCommands.h"
-#include "fuse/core/Error.h"
+#include "age/command/FeatureCommands.h"
+#include "age/command/Session.h"
+#include "age/command/SketchCommands.h"
+#include "age/core/Error.h"
 
 #include <doctest/doctest.h>
 
 #include <cstdlib>
 #include <filesystem>
 
-using namespace fuse;
-using namespace fuse::cmd;
-using fuse::testing::FakeKernel;
+using namespace age;
+using namespace age::cmd;
+using age::testing::FakeKernel;
 
 namespace {
 
@@ -37,7 +37,7 @@ int plateSketch(Session& s) {
 }
 
 std::string tempPath(const char* name) {
-    const char* dir = std::getenv("FUSE_TEST_TMPDIR"); // NOLINT(concurrency-mt-unsafe): single-threaded tests
+    const char* dir = std::getenv("AGE_TEST_TMPDIR"); // NOLINT(concurrency-mt-unsafe): single-threaded tests
     return (dir ? std::filesystem::path(dir) : std::filesystem::temp_directory_path()) / name;
 }
 
@@ -381,7 +381,7 @@ TEST_CASE("documents are saved and opened through commands") {
     CHECK_THROWS_AS(s.execute("document_save"), Error); // no file yet
     plateSketch(s);
     CHECK(s.modified());
-    const std::string path = tempPath("commands-roundtrip.fcad");
+    const std::string path = tempPath("commands-roundtrip.agecad");
     CHECK(s.execute("document_save", {{"path", path}}).output["path"] == path);
     CHECK_FALSE(s.modified());
     CHECK(s.path() == path);
@@ -393,5 +393,5 @@ TEST_CASE("documents are saved and opened through commands") {
     CHECK(s.document().features().size() == 1);
     CHECK(s.document().parameters().contains("w"));
     CHECK_FALSE(s.modified());
-    CHECK_THROWS_AS(s.execute("document_open", {{"path", tempPath("missing.fcad")}}), Error);
+    CHECK_THROWS_AS(s.execute("document_open", {{"path", tempPath("missing.agecad")}}), Error);
 }

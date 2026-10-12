@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-#include "fuse/core/Error.h"
-#include "fuse/core/Parameters.h"
-#include "fuse/sketch/Sketch.h"
+#include "age/core/Error.h"
+#include "age/core/Parameters.h"
+#include "age/sketch/Sketch.h"
 
 #include <doctest/doctest.h>
 
 #include <cmath>
 
-using namespace fuse;
-using namespace fuse::sketch;
+using namespace age;
+using namespace age::sketch;
 
 namespace {
 
@@ -189,11 +189,11 @@ TEST_CASE("fixed points hold their position") {
 
 TEST_CASE("invalid references are reported") {
     Sketch s;
-    CHECK_THROWS_AS(s.addLine(5, 6), fuse::Error);
+    CHECK_THROWS_AS(s.addLine(5, 6), age::Error);
     EntityId p = s.addPoint({1, 1});
-    CHECK_THROWS_AS(s.addLine(p, p), fuse::Error);
-    CHECK_THROWS_AS(s.radius(p), fuse::Error);
-    CHECK_THROWS_AS(s.setPoint(Sketch::kOrigin, {1, 1}), fuse::Error);
+    CHECK_THROWS_AS(s.addLine(p, p), age::Error);
+    CHECK_THROWS_AS(s.radius(p), age::Error);
+    CHECK_THROWS_AS(s.setPoint(Sketch::kOrigin, {1, 1}), age::Error);
 }
 
 TEST_CASE("constraints reject entities of the wrong kind") {
@@ -202,7 +202,7 @@ TEST_CASE("constraints reject entities of the wrong kind") {
     EntityId l = s.addLine({0, 0}, {10, 0});
     EntityId c = s.addCircle({5, 5}, 2);
     using C = Constraint;
-    auto rejects = [&](C con) { CHECK_THROWS_AS(s.addConstraint(std::move(con)), fuse::Error); };
+    auto rejects = [&](C con) { CHECK_THROWS_AS(s.addConstraint(std::move(con)), age::Error); };
     rejects(C{ConstraintType::Parallel, p, Sketch::kOrigin});
     rejects(C{ConstraintType::Parallel, l, -1});                   // missing entity
     rejects(C{ConstraintType::Horizontal, -1});                    // missing entity
@@ -219,9 +219,9 @@ TEST_CASE("constraints reject entities of the wrong kind") {
     C withExpression{ConstraintType::Parallel, l, s.addLine({0, 1}, {9, 2})};
     withExpression.expression = "1 mm";
     rejects(withExpression); // only dimensions are driven by expressions
-    CHECK_THROWS_AS(s.addDimension(ConstraintType::Coincident, p, Sketch::kOrigin, "1 mm"), fuse::Error);
-    CHECK_THROWS_AS(s.addDimension(ConstraintType::Angle, l, l, "10 mm"), fuse::Error); // wrong kind
-    CHECK_THROWS_AS(s.addDimension(ConstraintType::Diameter, c, -1, "-4 mm"), fuse::Error);
+    CHECK_THROWS_AS(s.addDimension(ConstraintType::Coincident, p, Sketch::kOrigin, "1 mm"), age::Error);
+    CHECK_THROWS_AS(s.addDimension(ConstraintType::Angle, l, l, "10 mm"), age::Error); // wrong kind
+    CHECK_THROWS_AS(s.addDimension(ConstraintType::Diameter, c, -1, "-4 mm"), age::Error);
     CHECK(s.constraints().empty());
 
     // Both entity orders are accepted where the constraint is symmetric in kind.
@@ -242,23 +242,23 @@ TEST_CASE("fromRaw validates entity and constraint references") {
 
     auto badEndpoint = entities;
     badEndpoint.push_back({EntityType::Line, -1, l, Sketch::kOrigin}); // endpoint is a line
-    CHECK_THROWS_AS(Sketch::fromRaw(vars, badEndpoint, constraints), fuse::Error);
+    CHECK_THROWS_AS(Sketch::fromRaw(vars, badEndpoint, constraints), age::Error);
 
     auto badArc = entities;
     badArc.push_back({EntityType::Arc, -1, Sketch::kOrigin, 1, -1}); // missing end point
-    CHECK_THROWS_AS(Sketch::fromRaw(vars, badArc, constraints), fuse::Error);
+    CHECK_THROWS_AS(Sketch::fromRaw(vars, badArc, constraints), age::Error);
 
     auto badVar = entities;
     badVar.push_back({EntityType::Point, static_cast<int>(vars.size()) - 1}); // y past the end
-    CHECK_THROWS_AS(Sketch::fromRaw(vars, badVar, constraints), fuse::Error);
+    CHECK_THROWS_AS(Sketch::fromRaw(vars, badVar, constraints), age::Error);
 
     auto badConstraint = constraints;
     badConstraint.push_back({ConstraintType::Radius, l});
-    CHECK_THROWS_AS(Sketch::fromRaw(vars, entities, badConstraint), fuse::Error);
+    CHECK_THROWS_AS(Sketch::fromRaw(vars, entities, badConstraint), age::Error);
     badConstraint.back() = {ConstraintType::Coincident, 1, -1};
-    CHECK_THROWS_AS(Sketch::fromRaw(vars, entities, badConstraint), fuse::Error);
+    CHECK_THROWS_AS(Sketch::fromRaw(vars, entities, badConstraint), age::Error);
     badConstraint.back() = {ConstraintType::Coincident, 1, 42};
-    CHECK_THROWS_AS(Sketch::fromRaw(vars, entities, badConstraint), fuse::Error);
+    CHECK_THROWS_AS(Sketch::fromRaw(vars, entities, badConstraint), age::Error);
 }
 
 TEST_CASE("a failed solve leaves the sketch unchanged") {
@@ -281,7 +281,7 @@ TEST_CASE("a failed solve leaves the sketch unchanged") {
     CHECK(s.constraints()[dim].value == doctest::Approx(10));
 
     params.setExpression("len", "-5 mm"); // throws while resolving dimensions
-    CHECK_THROWS_AS(s.solve(&params), fuse::Error);
+    CHECK_THROWS_AS(s.solve(&params), age::Error);
     CHECK(s.variables() == before);
     CHECK(s.constraints()[dim].value == doctest::Approx(10));
 }
@@ -329,14 +329,14 @@ TEST_CASE("angle dimensions wrap past +-180 degrees") {
 TEST_CASE("negative unsigned dimensions are errors") {
     Sketch s;
     EntityId c = s.addCircle({0, 0}, 5);
-    CHECK_THROWS_AS(s.addDimension(ConstraintType::Radius, c, -1, "-1 mm"), fuse::Error);
+    CHECK_THROWS_AS(s.addDimension(ConstraintType::Radius, c, -1, "-1 mm"), age::Error);
     EntityId l = s.addLine({0, 0}, {10, 0});
-    CHECK_THROWS_AS(s.addDimension(ConstraintType::Distance, s.entity(l).p1, s.entity(l).p2, "-1"), fuse::Error);
+    CHECK_THROWS_AS(s.addDimension(ConstraintType::Distance, s.entity(l).p1, s.entity(l).p2, "-1"), age::Error);
     // Signed dimensions may be negative.
     s.addDimension(ConstraintType::HorizontalDistance, s.entity(l).p2, s.entity(l).p1, "-10 mm");
 
     ParameterTable params;
     params.add("r", "-3 mm");
     s.addDimension(ConstraintType::Radius, c, -1, "r");
-    CHECK_THROWS_AS(s.solve(&params), fuse::Error);
+    CHECK_THROWS_AS(s.solve(&params), age::Error);
 }

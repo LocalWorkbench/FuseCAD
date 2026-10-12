@@ -13,7 +13,7 @@ parameter and watch the design regenerate, export STEP.
 ## Where we are (0.1)
 The engine exists: expression language and parameters, sketch constraint
 solver, OpenCASCADE kernel, feature timeline with recompute and undo, the
-`.fcad` format and the command-line tool. The first interface was removed so
+`.agecad` format and the command-line tool. The first interface was removed so
 the new one can be designed around commands from the start.
 
 - [ ] Rename the GitHub repository to match
@@ -93,7 +93,7 @@ Worked on alongside every milestone, and required for 1.0.
 - [ ] Fuzz testing of the document loader and of command arguments
 - [ ] Performance budget for large designs (recompute, tessellation, frame rate)
 - [ ] Signed macOS builds; Windows and Linux packages; release automation
-- [ ] User documentation, and a guide for driving FuseCAD from an agent
+- [ ] User documentation, and a guide for driving AgeCAD from an agent
 
 ## After 1.0
 Considered only once single-part modelling is solid.

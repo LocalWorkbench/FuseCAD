@@ -1,15 +1,15 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 #include "FakeKernel.h"
-#include "fuse/core/Error.h"
-#include "fuse/model/Builders.h"
-#include "fuse/model/Document.h"
-#include "fuse/model/Features.h"
-#include "fuse/model/Samples.h"
+#include "age/core/Error.h"
+#include "age/model/Builders.h"
+#include "age/model/Document.h"
+#include "age/model/Features.h"
+#include "age/model/Samples.h"
 
 #include <doctest/doctest.h>
 
-using namespace fuse;
-using fuse::testing::FakeKernel;
+using namespace age;
+using age::testing::FakeKernel;
 
 namespace {
 
@@ -108,13 +108,13 @@ TEST_CASE("documents round-trip through JSON") {
     CHECK(k1.log == k2.log);
 }
 
-TEST_CASE("malformed documents are rejected with fuse::Error") {
+TEST_CASE("malformed documents are rejected with age::Error") {
     CHECK_THROWS_AS(Document::fromJson("not json"), Error);
     CHECK_THROWS_AS(Document::fromJson(R"({"format":"other"})"), Error);
-    CHECK_THROWS_AS(Document::fromJson(R"({"format":"fusecad","version":999})"), Error);
+    CHECK_THROWS_AS(Document::fromJson(R"({"format":"agecad","version":999})"), Error);
     CHECK_THROWS_AS(Document::fromJson(R"({"version":1})"), Error);
     CHECK_THROWS_AS(
-        Document::fromJson(R"({"format":"fusecad","version":1,"parameters":[],"features":[{"id":1,"type":"warp"}]})"),
+        Document::fromJson(R"({"format":"agecad","version":1,"parameters":[],"features":[{"id":1,"type":"warp"}]})"),
         Error);
 }
 
@@ -391,13 +391,13 @@ TEST_CASE("feature provenance round-trips") {
     Document doc = samples::mountingPlate();
     doc.features()[0]->createdBy = {ActorKind::Agent, "claude"};
     doc.features()[0]->modifiedBy = {ActorKind::Person, ""};
-    doc.features()[1]->modifiedBy = {ActorKind::Script, "fusecad-cli"};
+    doc.features()[1]->modifiedBy = {ActorKind::Script, "agecad-cli"};
 
     Document copy = Document::fromJson(doc.toJson());
     CHECK(copy.features()[0]->createdBy == Actor{ActorKind::Agent, "claude"});
     CHECK(copy.features()[0]->modifiedBy == Actor{});
     CHECK(copy.features()[1]->createdBy == Actor{});
-    CHECK(copy.features()[1]->modifiedBy == Actor{ActorKind::Script, "fusecad-cli"});
+    CHECK(copy.features()[1]->modifiedBy == Actor{ActorKind::Script, "agecad-cli"});
 }
 
 TEST_CASE("diff reports what an edit changed") {

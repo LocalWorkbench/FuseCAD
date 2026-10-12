@@ -3,25 +3,25 @@
 // Integration tests against the real OpenCASCADE kernel: volumes are checked
 // against closed-form values, so these catch genuine geometry regressions.
 
-#include "fuse/command/Session.h"
-#include "fuse/core/Error.h"
-#include "fuse/model/Builders.h"
-#include "fuse/model/Document.h"
-#include "fuse/model/Features.h"
-#include "fuse/model/Samples.h"
-#include "fuse/occt/OcctKernel.h"
+#include "age/command/Session.h"
+#include "age/core/Error.h"
+#include "age/model/Builders.h"
+#include "age/model/Document.h"
+#include "age/model/Features.h"
+#include "age/model/Samples.h"
+#include "age/occt/OcctKernel.h"
 
 #include <doctest/doctest.h>
 
 #include <cstdlib>
 #include <filesystem>
 
-using namespace fuse;
+using namespace age;
 
 namespace {
 
 std::filesystem::path tmpPath(const char* name) {
-    const char* dir = std::getenv("FUSE_TEST_TMPDIR"); // NOLINT(concurrency-mt-unsafe): single-threaded tests
+    const char* dir = std::getenv("AGE_TEST_TMPDIR"); // NOLINT(concurrency-mt-unsafe): single-threaded tests
     return std::filesystem::path(dir ? dir : std::filesystem::temp_directory_path().string()) / name;
 }
 
@@ -213,7 +213,7 @@ TEST_CASE("meshing does not modify the shape") {
     CHECK(kernel->tessellate(s, 1.0).indices.size() == coarse.indices.size());
 }
 
-TEST_CASE("kernel errors surface as fuse::Error") {
+TEST_CASE("kernel errors surface as age::Error") {
     auto kernel = occt::createKernel();
     CHECK_THROWS_AS(kernel->importStep("/nonexistent/file.step"), Error);
     CHECK_THROWS_AS(kernel->extrude(Plane::XY(), {}, 0, 10), Error);

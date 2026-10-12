@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-#include "fuse/core/Error.h"
-#include "fuse/core/Expression.h"
-#include "fuse/core/Math.h"
+#include "age/core/Error.h"
+#include "age/core/Expression.h"
+#include "age/core/Math.h"
 
 #include <doctest/doctest.h>
 
@@ -9,16 +9,16 @@
 #include <string>
 #include <vector>
 
-using fuse::Expression;
-using fuse::Quantity;
-using fuse::UnitKind;
+using age::Expression;
+using age::Quantity;
+using age::UnitKind;
 
 namespace {
 
 double eval(const char* src, UnitKind expected = UnitKind::Unitless, const std::map<std::string, Quantity>& vars = {}) {
     return Expression::parse(src).evaluate(expected, [&](std::string_view name) {
         auto it = vars.find(std::string(name));
-        if (it == vars.end()) throw fuse::Error("unknown " + std::string(name));
+        if (it == vars.end()) throw age::Error("unknown " + std::string(name));
         return it->second;
     });
 }
@@ -31,7 +31,7 @@ double angle(const char* src, const std::map<std::string, Quantity>& vars = {}) 
     return eval(src, UnitKind::Angle, vars);
 }
 
-constexpr double kDeg = fuse::kPi / 180;
+constexpr double kDeg = age::kPi / 180;
 
 } // namespace
 
@@ -49,7 +49,7 @@ TEST_CASE("units convert to base units") {
     CHECK(length("10 mm") == doctest::Approx(10));
     CHECK(length("1 in") == doctest::Approx(25.4));
     CHECK(length("2cm + 5 mm") == doctest::Approx(25));
-    CHECK(angle("180 deg") == doctest::Approx(fuse::kPi));
+    CHECK(angle("180 deg") == doctest::Approx(age::kPi));
     CHECK(angle("1 rad") == doctest::Approx(1));
     CHECK(length("(1 + 1) in") == doctest::Approx(50.8));
     CHECK(length("1 m / 4") == doctest::Approx(250));
@@ -77,33 +77,33 @@ TEST_CASE("dimension rules") {
     CHECK(length("abs(-3 mm)") == doctest::Approx(3));
     CHECK(length("floor(12.7 mm)") == doctest::Approx(12));
     CHECK(length("max(1 in, 20)") == doctest::Approx(25.4));
-    CHECK(eval("pi") == doctest::Approx(fuse::kPi));
+    CHECK(eval("pi") == doctest::Approx(age::kPi));
 
-    CHECK_THROWS_AS(eval("10 mm + 5 deg"), fuse::Error);
-    CHECK_THROWS_AS(eval("10 mm * 5 mm"), fuse::Error); // areas are not supported
-    CHECK_THROWS_AS(eval("10 mm * 5 deg"), fuse::Error);
-    CHECK_THROWS_AS(eval("10 mm / 5 deg"), fuse::Error);
-    CHECK_THROWS_AS(eval("1 / 5 mm"), fuse::Error);
-    CHECK_THROWS_AS(eval("(10 mm) ^ 2"), fuse::Error);
-    CHECK_THROWS_AS(eval("2 ^ (1 mm)"), fuse::Error);
-    CHECK_THROWS_AS(eval("(1 mm) in"), fuse::Error);
-    CHECK_THROWS_AS(eval("sin(1 mm)"), fuse::Error);
-    CHECK_THROWS_AS(eval("sin(pi)"), fuse::Error); // pi is unitless; write sin(180 deg)
-    CHECK_THROWS_AS(angle("asin(1 mm)"), fuse::Error);
+    CHECK_THROWS_AS(eval("10 mm + 5 deg"), age::Error);
+    CHECK_THROWS_AS(eval("10 mm * 5 mm"), age::Error); // areas are not supported
+    CHECK_THROWS_AS(eval("10 mm * 5 deg"), age::Error);
+    CHECK_THROWS_AS(eval("10 mm / 5 deg"), age::Error);
+    CHECK_THROWS_AS(eval("1 / 5 mm"), age::Error);
+    CHECK_THROWS_AS(eval("(10 mm) ^ 2"), age::Error);
+    CHECK_THROWS_AS(eval("2 ^ (1 mm)"), age::Error);
+    CHECK_THROWS_AS(eval("(1 mm) in"), age::Error);
+    CHECK_THROWS_AS(eval("sin(1 mm)"), age::Error);
+    CHECK_THROWS_AS(eval("sin(pi)"), age::Error); // pi is unitless; write sin(180 deg)
+    CHECK_THROWS_AS(angle("asin(1 mm)"), age::Error);
     CHECK(angle("atan2(1 mm, 1)") == doctest::Approx(45 * kDeg)); // the bare 1 adopts length
-    CHECK_THROWS_AS(angle("atan2(1 mm, pi)"), fuse::Error);
-    CHECK_THROWS_AS(angle("atan2(1 deg, 1 deg)"), fuse::Error);
-    CHECK_THROWS_AS(eval("sqrt(4 mm)"), fuse::Error);
-    CHECK_THROWS_AS(angle("round(10 deg)"), fuse::Error);
-    CHECK_THROWS_AS(eval("min(1 mm, 1 deg)"), fuse::Error);
+    CHECK_THROWS_AS(angle("atan2(1 mm, pi)"), age::Error);
+    CHECK_THROWS_AS(angle("atan2(1 deg, 1 deg)"), age::Error);
+    CHECK_THROWS_AS(eval("sqrt(4 mm)"), age::Error);
+    CHECK_THROWS_AS(angle("round(10 deg)"), age::Error);
+    CHECK_THROWS_AS(eval("min(1 mm, 1 deg)"), age::Error);
 }
 
 TEST_CASE("the result must have the expected kind") {
-    CHECK_THROWS_AS(length("45 deg"), fuse::Error);
-    CHECK_THROWS_AS(angle("10 mm"), fuse::Error);
-    CHECK_THROWS_AS(eval("10 mm"), fuse::Error);
-    CHECK_THROWS_AS(length("pi"), fuse::Error);
-    CHECK_THROWS_AS(length("a", {{"a", {1, UnitKind::Angle}}}), fuse::Error);
+    CHECK_THROWS_AS(length("45 deg"), age::Error);
+    CHECK_THROWS_AS(angle("10 mm"), age::Error);
+    CHECK_THROWS_AS(eval("10 mm"), age::Error);
+    CHECK_THROWS_AS(length("pi"), age::Error);
+    CHECK_THROWS_AS(length("a", {{"a", {1, UnitKind::Angle}}}), age::Error);
     CHECK(eval("a / b", UnitKind::Unitless, {{"a", {6, UnitKind::Length}}, {"b", {3, UnitKind::Length}}}) ==
           doctest::Approx(2));
 }
@@ -112,7 +112,7 @@ TEST_CASE("functions and constants") {
     CHECK(eval("sin(90 deg)") == doctest::Approx(1));
     CHECK(eval("sqrt(16) + abs(-2)") == doctest::Approx(6));
     CHECK(eval("max(3, 7) - min(3, 7)") == doctest::Approx(4));
-    CHECK(eval("2 * pi") == doctest::Approx(2 * fuse::kPi));
+    CHECK(eval("2 * pi") == doctest::Approx(2 * age::kPi));
 }
 
 TEST_CASE("identifiers resolve through lookup") {
@@ -124,16 +124,16 @@ TEST_CASE("identifiers resolve through lookup") {
 }
 
 TEST_CASE("malformed expressions are rejected") {
-    CHECK_THROWS_AS(Expression::parse(""), fuse::Error);
-    CHECK_THROWS_AS(Expression::parse("1 +"), fuse::Error);
-    CHECK_THROWS_AS(Expression::parse("(1 + 2"), fuse::Error);
-    CHECK_THROWS_AS(Expression::parse("1 2"), fuse::Error);
-    CHECK_THROWS_AS(Expression::parse("foo(1)"), fuse::Error);
-    CHECK_THROWS_AS(Expression::parse("sin(1, 2)"), fuse::Error);
-    CHECK_THROWS_AS(Expression::parse("mm"), fuse::Error);
-    CHECK_THROWS_AS(eval("1 / 0"), fuse::Error);
-    CHECK_THROWS_AS(eval("sqrt(-1)"), fuse::Error);
-    CHECK_THROWS_AS(Expression::parse("x").evaluate(UnitKind::Length), fuse::Error);
+    CHECK_THROWS_AS(Expression::parse(""), age::Error);
+    CHECK_THROWS_AS(Expression::parse("1 +"), age::Error);
+    CHECK_THROWS_AS(Expression::parse("(1 + 2"), age::Error);
+    CHECK_THROWS_AS(Expression::parse("1 2"), age::Error);
+    CHECK_THROWS_AS(Expression::parse("foo(1)"), age::Error);
+    CHECK_THROWS_AS(Expression::parse("sin(1, 2)"), age::Error);
+    CHECK_THROWS_AS(Expression::parse("mm"), age::Error);
+    CHECK_THROWS_AS(eval("1 / 0"), age::Error);
+    CHECK_THROWS_AS(eval("sqrt(-1)"), age::Error);
+    CHECK_THROWS_AS(Expression::parse("x").evaluate(UnitKind::Length), age::Error);
 }
 
 TEST_CASE("renaming rewrites whole identifiers only") {
@@ -145,12 +145,12 @@ TEST_CASE("renaming rewrites whole identifiers only") {
 }
 
 TEST_CASE("identifier rules") {
-    CHECK(fuse::isValidIdentifier("width_2"));
-    CHECK(fuse::isValidIdentifier("_x"));
-    CHECK_FALSE(fuse::isValidIdentifier("2x"));
-    CHECK_FALSE(fuse::isValidIdentifier("a-b"));
-    CHECK(fuse::isReservedName("mm"));
-    CHECK(fuse::isReservedName("sin"));
-    CHECK(fuse::isReservedName("pi"));
-    CHECK_FALSE(fuse::isReservedName("width"));
+    CHECK(age::isValidIdentifier("width_2"));
+    CHECK(age::isValidIdentifier("_x"));
+    CHECK_FALSE(age::isValidIdentifier("2x"));
+    CHECK_FALSE(age::isValidIdentifier("a-b"));
+    CHECK(age::isReservedName("mm"));
+    CHECK(age::isReservedName("sin"));
+    CHECK(age::isReservedName("pi"));
+    CHECK_FALSE(age::isReservedName("width"));
 }

@@ -1,13 +1,13 @@
 <p align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="docs/brand/wordmark-dark.svg">
-    <img src="docs/brand/wordmark-light.svg" alt="FuseCAD" width="360">
+    <img src="docs/brand/wordmark-light.svg" alt="AgeCAD" width="360">
   </picture>
 </p>
 
 <p align="center"><b>Parametric CAD for people and their agents. Free and open source.</b></p>
 
-FuseCAD is a parametric part modeller built on two equal footings. People get
+AgeCAD is a parametric part modeller built on two equal footings. People get
 a fast, quiet interface where the model fills the screen and every tool sits
 one keystroke away. Agents get the very same tools through an API and an MCP
 server, so they can sketch, dimension, model, measure and export alongside you.
@@ -24,7 +24,7 @@ server, so they can sketch, dimension, model, measure and export alongside you.
 - **Few things, done well.** Version 1 is single-part modelling: constrained
   sketches, solid features and STEP/STL export, made robust before anything
   else is added.
-- **Open all the way down.** OpenCASCADE kernel, open `.fcad` JSON files on
+- **Open all the way down.** OpenCASCADE kernel, open `.agecad` JSON files on
   your own disk, GPL-3.0.
 
 **Status:** pre-release. The modelling engine and the command-line tool work;
@@ -40,7 +40,7 @@ macOS:
 ```sh
 brew install cmake ninja opencascade nlohmann-json doctest
 cmake --preset dev && cmake --build --preset dev && ctest --preset dev
-build/dev/apps/fusecad-cli/fusecad-cli new part.fcad --sample pillow-block
+build/dev/apps/agecad-cli/agecad-cli new part.agecad --sample pillow-block
 ```
 
 Ubuntu 26.04:

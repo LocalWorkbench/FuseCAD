@@ -1,6 +1,6 @@
 # Architecture
 
-FuseCAD is a history-based parametric modeller. A design is a list of user
+AgeCAD is a history-based parametric modeller. A design is a list of user
 parameters plus an ordered **timeline of features**; solid geometry is derived
 state, regenerated from that definition on every change.
 
@@ -18,19 +18,19 @@ describes the engine underneath it.
 
 | Library | Responsibility | Depends on |
 |---|---|---|
-| `fuse::core` | Vectors and planes, units, the expression language, the parameter table | standard library only |
-| `fuse::sketch` | 2D sketch entities, constraints, the constraint solver, profile detection | `core` |
-| `fuse::kernel` | Abstract `Kernel` interface plus kernel-neutral data (`Mesh`, `EdgeQuery`) | `sketch` (header-only) |
-| `fuse::model` | Features, recompute, `Document`, undo, `.fcad` serialisation, modelling commands | `kernel`; nlohmann-json (private) |
-| `fuse::occt` | `Kernel` implemented with OpenCASCADE | `kernel`; OCCT (private) |
-| `fuse::command` | Typed commands (one per user action), their JSON Schemas, and `Session`: the single path for every edit | `model`; nlohmann-json (public: JSON is its interface) |
-| `apps/fusecad-cli` | Command-line front end over `Session` | `command`, `occt` |
+| `age::core` | Vectors and planes, units, the expression language, the parameter table | standard library only |
+| `age::sketch` | 2D sketch entities, constraints, the constraint solver, profile detection | `core` |
+| `age::kernel` | Abstract `Kernel` interface plus kernel-neutral data (`Mesh`, `EdgeQuery`) | `sketch` (header-only) |
+| `age::model` | Features, recompute, `Document`, undo, `.agecad` serialisation, modelling commands | `kernel`; nlohmann-json (private) |
+| `age::occt` | `Kernel` implemented with OpenCASCADE | `kernel`; OCCT (private) |
+| `age::command` | Typed commands (one per user action), their JSON Schemas, and `Session`: the single path for every edit | `model`; nlohmann-json (public: JSON is its interface) |
+| `apps/agecad-cli` | Command-line front end over `Session` | `command`, `occt` |
 
 Rules that keep this healthy:
 
 - Dependencies only point downwards. Third-party libraries are `PRIVATE`
   dependencies, so their headers never leak into our public headers.
-- Only `fuse::occt` includes OpenCASCADE headers. Everything above it sees opaque
+- Only `age::occt` includes OpenCASCADE headers. Everything above it sees opaque
   `ShapePtr` handles, so the kernel can be replaced or supplemented later.
 - The model layer is tested against `FakeKernel` (no geometry), and the OCCT
   backend against closed-form volumes. A geometry regression shows up as a
@@ -40,7 +40,7 @@ Rules that keep this healthy:
 
 ### 1. OpenCASCADE behind an interface, not a home-grown kernel (for now)
 A production B-rep kernel (robust booleans, fillets, offsets, STEP) is a
-decade-scale effort. OCCT is mature and LGPL. Wrapping it behind `fuse::Kernel`
+decade-scale effort. OCCT is mature and LGPL. Wrapping it behind `age::Kernel`
 keeps the option to replace individual operations later without touching the
 model or anything built on it.
 
@@ -88,7 +88,7 @@ state, which is not a user change), then recomputed. It is refused, changing
 nothing, if it throws, creates a failing feature, or breaks a feature that was
 working; a parameter change that breaks dependents is allowed and reported as
 issues. Created and modified features are stamped with the acting person,
-script or agent, which the `.fcad` file keeps.
+script or agent, which the `.agecad` file keeps.
 
 Transactions preview one edit: `begin`, any number of `update`s re-applying
 it to the committed state (dragging a handle, an agent trying values), then
@@ -96,7 +96,7 @@ it to the committed state (dragging a handle, an agent trying values), then
 edits wait.
 
 ### 7. Kernel results are checked at the boundary
-Every `OcctKernel` call converts OpenCASCADE exceptions into `fuse::Error`, and
+Every `OcctKernel` call converts OpenCASCADE exceptions into `age::Error`, and
 every modelling operation (extrude, revolve, booleans, fillet, chamfer, STEP
 import) rejects results that hold no solid or fail the B-rep checker, with a
 message a CAD user can act on. Queries never modify their input: meshing works
@@ -107,7 +107,7 @@ on a copy, so a shape can be shared and cached safely.
 ```
 Document::recompute(kernel)
   for each feature before the marker, not suppressed:
-      feature.execute(ctx)      // may throw fuse::Error
+      feature.execute(ctx)      // may throw age::Error
   ctx.bodies -> document bodies
 ```
 
@@ -118,7 +118,7 @@ them, so they are stable across recomputes.
 
 ## File format
 
-`.fcad` files are pretty-printed JSON with a `format` tag and an integer
+`.agecad` files are pretty-printed JSON with a `format` tag and an integer
 `version`. Readers reject files from newer versions rather than misreading
 them. Until 1.0 the version is simply bumped when the format changes; older
 files are not migrated. Sketch entities and constraints are stored by index; the raw solver state

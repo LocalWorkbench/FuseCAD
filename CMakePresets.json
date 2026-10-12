@@ -9,20 +9,20 @@
       "binaryDir": "${sourceDir}/build/${presetName}",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Debug",
-        "FUSE_WARNINGS_AS_ERRORS": "ON"
+        "AGE_WARNINGS_AS_ERRORS": "ON"
       }
     },
     {
       "name": "asan",
       "displayName": "dev + AddressSanitizer + UBSan",
       "inherits": "dev",
-      "cacheVariables": { "FUSE_SANITIZERS": "address;undefined" }
+      "cacheVariables": { "AGE_SANITIZERS": "address;undefined" }
     },
     {
       "name": "core-only",
       "displayName": "Core libraries only (no OCCT)",
       "inherits": "dev",
-      "cacheVariables": { "FUSE_WITH_OCCT": "OFF" }
+      "cacheVariables": { "AGE_WITH_OCCT": "OFF" }
     }
   ],
   "buildPresets": [

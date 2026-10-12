@@ -14,7 +14,7 @@ BreakConstructorInitializers: BeforeColon
 FixNamespaceComments: true
 IncludeBlocks: Regroup
 IncludeCategories:
-  # Own headers ("fuse/...", local "X.h"), then third-party, then the standard library.
+  # Own headers ("age/...", local "X.h"), then third-party, then the standard library.
   - Regex: '^"'
     Priority: 1
   - Regex: '^<.*\.hxx>$' # OpenCASCADE
