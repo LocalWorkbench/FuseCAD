@@ -79,9 +79,12 @@ Worked on alongside every milestone, and required for 1.0.
 - [ ] User documentation and a getting-started tutorial
 
 ## Later
-- [ ] Drawings: 2D views and dimensions from the 3D model
-- [ ] CAM: toolpath generation
-- [ ] Simulation: linear static FEA
-- [ ] Electronics: schematic and PCB linked to the mechanical model
+The rest of the platform, after 1.0.
+- [ ] Surface modelling and sheet metal
+- [ ] Motion studies for assemblies
+- [ ] Drawings: production drawings with views and dimensions from the 3D model
+- [ ] CAM: milling, turning and additive toolpaths
+- [ ] Simulation: structural, thermal and modal analysis
+- [ ] Electronics: schematics and PCBs linked to the mechanical design
 - [ ] Python scripting API
 - [ ] Dark theme

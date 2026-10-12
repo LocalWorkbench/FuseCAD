@@ -5,32 +5,31 @@
   </picture>
 </p>
 
-<p align="center"><b>Open-source parametric CAD.</b> Sketch, constrain, extrude, fillet; change a parameter and the whole design regenerates.</p>
+<p align="center"><b>Professional 3D CAD, CAM and CAE. Free and open source.</b></p>
 
-![FuseCAD modelling a parametric flange](docs/images/screenshot.png)
+![FuseCAD](docs/images/screenshot.png)
 
-FuseCAD is a history-based solid modeller written in C++20 on
-[OpenCASCADE](https://occt3d.com) and Qt 6. Every dimension can be an
-expression over named parameters, and every feature is a step on an editable
-timeline.
+FuseCAD is one application for the whole product-development workflow, from
+the first sketch to the part on the machine. No subscriptions, no cloud
+lock-in, no feature tiers: every capability is free, and your designs stay in
+open files on your own disk.
 
-**Status:** pre-release. The parametric core, kernel and desktop shell work;
-interactive sketching and feature editing in the viewport are next. See the
-[roadmap](docs/ROADMAP.md).
+## One platform
 
-## Features
+- **Design:** parametric solid, surface and sheet-metal modelling on a full history timeline
+- **Assemble:** components, joints and motion studies
+- **Document:** production drawings generated from the 3D model
+- **Manufacture:** CAM toolpaths for milling, turning and additive
+- **Simulate:** structural, thermal and modal analysis
+- **Electronics:** schematics and PCBs linked to the mechanical design
 
-- **Parameters:** named expressions with units (`mm`, `in`, `deg`, ...) and functions
-- **Sketcher:** lines, arcs, circles; 17 constraints; degree-of-freedom analysis
-- **Features:** extrude, revolve, fillet, chamfer, boolean join/cut/intersect, STEP import
-- **Timeline:** rollback, suppress, rename, undo/redo
-- **Files:** `.fcad` (plain JSON); STEP and STL export
-- **CLI:** `fusecad-cli` creates, inspects, re-parameterises and exports designs headlessly
+**Status:** pre-release, in active development. The [roadmap](docs/ROADMAP.md)
+shows what works today and what comes next.
 
 ## Build
 
-Requires CMake ≥ 3.25, Ninja, a C++20 compiler, OpenCASCADE ≥ 7.8, Qt ≥ 6.5,
-nlohmann-json and doctest.
+Requires CMake ≥ 3.25, Ninja, a C++20 compiler, [OpenCASCADE](https://occt3d.com) ≥ 7.8,
+Qt ≥ 6.5, nlohmann-json and doctest.
 
 macOS:
 
@@ -46,14 +45,6 @@ Ubuntu 26.04:
 sudo apt install cmake ninja-build g++ nlohmann-json3-dev doctest-dev \
   libocct-data-exchange-dev qt6-base-dev libgl-dev
 cmake --preset dev && cmake --build --preset dev && ctest --preset dev
-```
-
-From the command line:
-
-```sh
-cli=build/dev/apps/fusecad-cli/fusecad-cli
-$cli new plate.fcad --sample plate
-$cli export plate.fcad plate.step -p width=120mm
 ```
 
 ## Learn more

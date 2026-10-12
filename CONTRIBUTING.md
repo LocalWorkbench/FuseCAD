@@ -9,6 +9,9 @@ expect from a change.
 2. `cmake --preset dev && cmake --build --preset dev && ctest --preset dev`
 3. Run the app with `scripts/run.sh`, or `scripts/watch.sh` to rebuild on every save.
 
+After a visible UI change, refresh the README image with `scripts/make-preview.py`
+(needs Pillow). It captures the flange sample from `build/dev` and composes it.
+
 | Preset | Purpose |
 |---|---|
 | `dev` | Debug build of everything, warnings as errors |
